@@ -16,7 +16,8 @@ router.post('/signup', async (req, res) => {
     passoutYear, 
     companyName, 
     companyLocation, 
-    linkedin 
+    linkedin,
+    profileImage
   } = req.body;
 
   try {
@@ -38,6 +39,7 @@ router.post('/signup', async (req, res) => {
     if (role === 'alumni') {
       const alumni = new Alumni({
         name,
+        profileImage,
         email,
         engineeringType,
         passoutYear,
@@ -216,5 +218,129 @@ router.delete('/delete_jobs/:id',  async (req, res) => {
   }
 });
 
+router.get('/get_alumni', async (req, res) => {
+  try {
+    const alumni = await Alumni.find().select('-__v'); // Exclude version key
+    res.status(200).json(alumni);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch alumni', error: error.message });
+  }
+});
+
+// Add this new route for better pagination support
+router.get('/get_alumni_paginated', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+    const search = req.query.search || '';
+    const year = req.query.year || 'all';
+
+    const query = {};
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { engineeringType: { $regex: search, $options: 'i' } }
+      ];
+    }
+    if (year !== 'all') {
+      query.passoutYear = parseInt(year);
+    }
+
+    const total = await Alumni.countDocuments(query);
+    const alumni = await Alumni.find(query)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .select('-__v');
+
+    res.status(200).json({
+      alumni,
+      total,
+      pages: Math.ceil(total / limit),
+      currentPage: page
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch alumni', error: error.message });
+  }
+});
+
+// Get alumni profile based on logged-in user (using email from request)
+router.get('/profile', async (req, res) => {
+  try {
+    const { email } = req.headers; // Expect email to be sent in headers
+    if (!email) {
+      return res.status(401).json({ message: 'Email not provided' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || user.role !== 'alumni') {
+      return res.status(403).json({ message: 'Unauthorized or not an alumni' });
+    }
+
+    const alumniProfile = await Alumni.findOne({ email });
+    if (!alumniProfile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    res.status(200).json(alumniProfile);
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update alumni profile
+router.put('/update_profile', async (req, res) => {
+  try {
+    const { email } = req.headers; // Expect email to be sent in headers
+    if (!email) {
+      return res.status(401).json({ message: 'Email not provided' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || user.role !== 'alumni') {
+      return res.status(403).json({ message: 'Unauthorized or not an alumni' });
+    }
+
+    const {
+      name,
+      profileImage,
+      engineeringType,
+      passoutYear,
+      companyName,
+      role,
+      companyLocation,
+      linkedin,
+    } = req.body;
+
+    const updatedProfile = await Alumni.findOneAndUpdate(
+      { email },
+      {
+        name,
+        profileImage,
+        engineeringType,
+        passoutYear,
+        companyName,
+        role,
+        companyLocation,
+        linkedin,
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedProfile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    // Update User collection too (if needed)
+    await User.findOneAndUpdate({ email }, { name });
+
+    res.status(200).json({ message: 'Profile updated successfully', profile: updatedProfile });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 module.exports = router;

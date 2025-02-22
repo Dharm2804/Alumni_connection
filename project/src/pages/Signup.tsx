@@ -7,11 +7,12 @@ interface FormData {
   email: string;
   password: string;
   role: string;
-  engineeringType?: string; // Optional for non-alumni
-  passoutYear?: number;     // Optional for non-alumni
-  companyName?: string;     // Optional for non-alumni
-  companyLocation?: string; // Optional for non-alumni
-  linkedin?: string;        // Optional
+  engineeringType?: string;
+  passoutYear?: number;
+  companyName?: string;
+  companyLocation?: string;
+  linkedin?: string;
+  profileImage?: string; // Will store base64 string
 }
 
 export default function Signup() {
@@ -25,9 +26,11 @@ export default function Signup() {
     companyName: '',
     companyLocation: '',
     linkedin: '',
+    profileImage: '',
   });
 
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -38,6 +41,24 @@ export default function Signup() {
     }));
   };
 
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        setError('Image size should be less than 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({
+          ...prev,
+          profileImage: reader.result as string,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleRoleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, role: e.target.value }));
   };
@@ -46,13 +67,13 @@ export default function Signup() {
     e.preventDefault();
 
     if (!formData.role) {
-      alert('Please select a role.');
+      setError('Please select a role.');
       return;
     }
 
     if (formData.role === 'alumni') {
-      if (!formData.engineeringType || !formData.passoutYear || !formData.companyName || !formData.companyLocation) {
-        alert('Please fill in all required alumni fields.');
+      if (!formData.engineeringType || !formData.passoutYear || !formData.companyName || !formData.companyLocation || !formData.profileImage) {
+        setError('Please fill in all required alumni fields, including profile image.');
         return;
       }
     }
@@ -68,21 +89,20 @@ export default function Signup() {
 
       const data = await response.json();
       if (response.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userEmail', formData.email);
         setSignupSuccess(true);
+        setError('');
         setTimeout(() => {
           setSignupSuccess(false);
-          if (formData.role === 'alumni') {
-            navigate('/profile'); // Redirect to profile for alumni
-          } else {
-            navigate('/login'); // Redirect to login for others
-          }
+          navigate('/login');
         }, 2000);
       } else {
-        alert(data.message || 'Signup Failed!');
+        setError(data.message || 'Signup Failed!');
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('Something went wrong!');
+      console.error('Signup error:', error);
+      setError('Something went wrong!');
     }
   };
 
@@ -115,6 +135,8 @@ export default function Signup() {
           className="mx-auto mb-4 w-32"
         />
         <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">Sign Up</h2>
+
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
         <form onSubmit={handleSubmit}>
           <input
@@ -186,10 +208,26 @@ export default function Signup() {
           {formData.role === 'alumni' && (
             <div className="mb-4">
               <input
+                type="file"
+                id="profileImage"
+                accept="image/*"
+                onChange={handleFileChange}
+                required
+                className="w-full mb-4 p-3 rounded-md border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              {formData.profileImage && (
+                <img
+                  src={formData.profileImage}
+                  alt="Profile Preview"
+                  className="w-20 h-20 rounded-full object-cover mb-4 mx-auto"
+                  onError={() => setError('Error loading image preview')}
+                />
+              )}
+              <input
                 type="text"
                 placeholder="Engineering Type"
                 id="engineeringType"
-                value={formData.engineeringType}
+                value={formData.engineeringType || ''}
                 onChange={handleChange}
                 required
                 className="w-full mb-4 p-3 rounded-md border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
@@ -207,7 +245,7 @@ export default function Signup() {
                 type="text"
                 placeholder="Company Name"
                 id="companyName"
-                value={formData.companyName}
+                value={formData.companyName || ''}
                 onChange={handleChange}
                 required
                 className="w-full mb-4 p-3 rounded-md border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
@@ -216,7 +254,7 @@ export default function Signup() {
                 type="text"
                 placeholder="Company Location"
                 id="companyLocation"
-                value={formData.companyLocation}
+                value={formData.companyLocation || ''}
                 onChange={handleChange}
                 required
                 className="w-full mb-4 p-3 rounded-md border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
@@ -225,7 +263,7 @@ export default function Signup() {
                 type="text"
                 placeholder="LinkedIn (optional)"
                 id="linkedin"
-                value={formData.linkedin}
+                value={formData.linkedin || ''}
                 onChange={handleChange}
                 className="w-full mb-4 p-3 rounded-md border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
               />

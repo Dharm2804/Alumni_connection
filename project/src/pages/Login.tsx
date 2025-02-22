@@ -24,6 +24,7 @@ export default function Login() {
       });
 
       localStorage.setItem('token', response.data.token);
+      localStorage.setItem('email', email);
       localStorage.setItem('role', role);
 
       setLoginSuccess(true);

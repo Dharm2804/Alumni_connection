@@ -2,16 +2,16 @@ const mongoose = require('mongoose');
 
 const alumniSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  profileImage: { type: String },
+  profileImage: { type: String, default: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }, // Added default
   engineeringType: { type: String, required: true },
   passoutYear: { type: Number, required: true },
   companyName: { type: String, required: true },
-  role: { type: String, required: true }, // This is role in company
+  role: { type: String, required: true }, // Role in company
   companyLocation: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  linkedin: { type: String },
+  linkedin: { type: String }
 }, {
-  timestamps: true,
+  timestamps: true
 });
 
 const Alumni = mongoose.model('Alumni', alumniSchema);
