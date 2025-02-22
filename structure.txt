@@ -1,0 +1,96 @@
+alumni-connect/
+├── backend/                  # Backend (Node.js/Express/MongoDB)
+│   ├── config/               # Configuration files
+│   │   └── db.js             # MongoDB connection setup
+│   ├── controllers/          # Route handlers (business logic)
+│   │   └── authController.js # Handles login/signup logic
+│   ├── models/               # MongoDB models (schemas)
+│   │   └── User.js           # User schema and model
+│   ├── routes/               # API routes
+│   │   └── authRoutes.js     # Routes for authentication
+│   ├── middleware/           # Custom middleware (e.g., auth, error handling)
+│   │   └── authMiddleware.js # Middleware for authentication
+│   ├── utils/                # Utility functions
+│   │   └── bcryptUtils.js    # Password hashing/validation
+│   ├── .env                  # Environment variables
+│   ├── server.js             # Entry point for the backend
+│   └── package.json          # Backend dependencies
+│
+├── frontend/                 # Frontend (React)
+│   ├── public/               # Static assets
+│   │   └── index.html        # HTML template
+│   ├── src/                  # React source code
+│   │   ├── components/       # Reusable components
+│   │   │   ├── Auth/         # Auth-related components
+│   │   │   │   ├── Login.js  # Login component
+│   │   │   │   └── Signup.js # Signup component
+│   │   │   └── Navbar.js     # Navigation bar
+│   │   ├── pages/            # Page components
+│   │   │   ├── Home.js       # Home page
+│   │   │   ├── LoginPage.js  # Login page
+│   │   │   └── SignupPage.js # Signup page
+│   │   ├── services/         # API service calls
+│   │   │   └── authService.js# Functions for login/signup API calls
+│   │   ├── App.js            # Main app component
+│   │   ├── index.js          # Entry point for React
+│   │   └── App.css           # Global styles
+│   ├── .env                  # Frontend environment variables
+│   ├── package.json          # Frontend dependencies
+│   └── README.md             # Frontend documentation
+│
+├── .gitignore               # Git ignore file
+└── README.md                # Project documentation
+
+
+
+
+
+alumni-connect/
+├── backend/                  # Backend (Node.js/Express/MongoDB)
+│   ├── config/               # Configuration files
+│   │   └── db.ts             # MongoDB connection setup
+│   ├── controllers/          # Route handlers (business logic)
+│   │   └── authController.ts # Handles login/signup logic
+│   ├── models/               # MongoDB models (schemas)
+│   │   └── User.ts           # User schema and model
+│   ├── routes/               # API routes
+│   │   └── authRoutes.ts     # Routes for authentication
+│   ├── middleware/           # Custom middleware (e.g., auth, error handling)
+│   │   └── authMiddleware.ts # Middleware for authentication
+│   ├── utils/                # Utility functions
+│   │   └── bcryptUtils.ts    # Password hashing/validation
+│   ├── .env                  # Environment variables
+│   ├── server.ts             # Entry point for the backend
+│   └── package.json          # Backend dependencies
+│
+├── frontend/                 # Frontend (React with TypeScript)
+│   ├── public/               # Static assets
+│   │   └── index.html        # HTML template
+│   ├── src/                  # React source code
+│   │   ├── assets/           # Static assets (images, icons, etc.)
+│   │   ├── components/       # Reusable components
+│   │   │   ├── Auth/         # Auth-related components
+│   │   │   │   ├── Login.tsx # Login component
+│   │   │   │   └── Signup.tsx# Signup component
+│   │   │   └── Navbar.tsx    # Navigation bar
+│   │   ├── context/          # React Context for state management
+│   │   │   └── AuthContext.tsx# Authentication context
+│   │   ├── pages/            # Page components
+│   │   │   ├── Home.tsx      # Home page
+│   │   │   ├── LoginPage.tsx # Login page
+│   │   │   ├── SignupPage.tsx# Signup page
+│   │   │   ├── AlumniDirectory.tsx # Alumni directory page
+│   │   │   ├── JobPortal.tsx # Job portal page
+│   │   │   ├── Events.tsx    # Events page
+│   │   │   └── Donate.tsx    # Donate page
+│   │   ├── services/         # API service calls
+│   │   │   └── authService.ts# Functions for login/signup API calls
+│   │   ├── App.tsx           # Main app component
+│   │   ├── index.tsx         # Entry point for React
+│   │   └── App.css           # Global styles
+│   ├── .env                  # Frontend environment variables
+│   ├── package.json          # Frontend dependencies
+│   └── tsconfig.json         # TypeScript configuration
+│
+├── .gitignore               # Git ignore file
+└── README.md                # Project documentation
