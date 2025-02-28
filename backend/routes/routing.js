@@ -4,7 +4,11 @@ const Alumni = require('../models/Alumni');
 const Job = require('../models/Job');
 const bcrypt = require('bcryptjs');
 const Event = require('../models/eventModel');
+const { sendWelcomeEmail } = require('./emailService');
+const { sendResetEmail } = require('./sendreset_email');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
+require('dotenv').config();
 
 router.post('/signup', async (req, res) => {
   const { 
@@ -51,6 +55,9 @@ router.post('/signup', async (req, res) => {
       await alumni.save();
     }
 
+    // Send welcome email
+    await sendWelcomeEmail(email, name);
+
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
     console.error(err);
@@ -89,6 +96,55 @@ router.post('/login', async (req, res) => {
 
 router.post('/logout', (req, res) => {
   res.json({ message: 'Logged out successfully' });
+});
+
+const SECRET_KEY = process.env.SECRET_KEY;
+
+// Request Reset Link
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+
+    const token = jwt.sign({ email }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
+    const resetUrl = `http://localhost:5000/reset-password/${token}`;
+
+    await sendResetEmail(email, resetUrl);
+
+    res.json({ message: 'Password reset link sent to your email' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Reset Password
+router.post('/reset-password/:token', async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    const user = await User.findOne({ email: decoded.email });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid token' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({ message: 'Password has been reset successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Invalid or expired token' });
+  }
 });
 
 router.get('/get_events', async (req, res) => {

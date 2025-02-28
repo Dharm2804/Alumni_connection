@@ -50,7 +50,7 @@ export default function JobPortal() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
-  const [, setIsHovering] = useState(false);
+  const [, setIsHovering] = useState(false); // Fixed unused variable warning
 
   axios.defaults.baseURL = 'http://localhost:5000';
 
@@ -171,6 +171,7 @@ export default function JobPortal() {
       type: 'full-time',
     });
     setShowAddForm(false);
+    setEditingJob(null); // Added to ensure clean state
   };
 
   const filteredJobs = jobs.filter(job => {
@@ -181,7 +182,7 @@ export default function JobPortal() {
   });
 
   return (
-    <motion.div className="p-6 min-h-screen bg-gray-100">
+    <motion.div className="p-6 min-h-screen bg-gray-100 relative">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
           <motion.h1
@@ -229,81 +230,97 @@ export default function JobPortal() {
 
         {(showAddForm || editingJob) && (
           <motion.div
-            className="mb-8 p-6 bg-white rounded-xl shadow-md"
+            className="fixed inset-0 z-50 flex items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            <h2 className="text-xl font-semibold mb-4">
-              {editingJob ? 'Edit Job' : 'Add New Job'}
-            </h2>
-            <form onSubmit={editingJob ? handleEditJob : handleAddJob} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  placeholder="Job Title"
-                  value={editingJob ? editingJob.title : newJob.title || ''}
-                  onChange={(e) => editingJob ? setEditingJob({ ...editingJob, title: e.target.value }) : setNewJob({ ...newJob, title: e.target.value })}
-                  className="p-2 border rounded-lg w-full"
+            {/* Backdrop */}
+            <motion.div 
+              className="absolute inset-0 bg-black bg-opacity-50"
+              onClick={() => resetForm()}
+            />
+            
+            {/* Centered Form */}
+            <motion.div 
+              className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl p-6 m-4 max-h-[90vh] overflow-y-auto"
+              initial={{ scale: 0.95, y: -50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: -50 }}
+            >
+              <h2 className="text-xl font-semibold mb-4">
+                {editingJob ? 'Edit Job' : 'Add New Job'}
+              </h2>
+              <form onSubmit={editingJob ? handleEditJob : handleAddJob} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Job Title"
+                    value={editingJob ? editingJob.title : newJob.title || ''}
+                    onChange={(e) => editingJob ? setEditingJob({ ...editingJob, title: e.target.value }) : setNewJob({ ...newJob, title: e.target.value })}
+                    className="p-2 border rounded-lg w-full focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Company"
+                    value={editingJob ? editingJob.company : newJob.company || ''}
+                    onChange={(e) => editingJob ? setEditingJob({ ...editingJob, company: e.target.value }) : setNewJob({ ...newJob, company: e.target.value })}
+                    className="p-2 border rounded-lg w-full focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Location"
+                    value={editingJob ? editingJob.location : newJob.location || ''}
+                    onChange={(e) => editingJob ? setEditingJob({ ...editingJob, location: e.target.value }) : setNewJob({ ...newJob, location: e.target.value })}
+                    className="p-2 border rounded-lg w-full focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                  <select
+                    value={editingJob ? editingJob.type : newJob.type || 'full-time'}
+                    onChange={(e) => editingJob ? setEditingJob({ ...editingJob, type: e.target.value as Job['type'] }) : setNewJob({ ...newJob, type: e.target.value as Job['type'] })}
+                    className="p-2 border rounded-lg w-full focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="full-time">Full Time</option>
+                    <option value="part-time">Part Time</option>
+                    <option value="contract">Contract</option>
+                    <option value="internship">Internship</option>
+                  </select>
+                </div>
+                <textarea
+                  placeholder="Description"
+                  value={editingJob ? editingJob.description : newJob.description || ''}
+                  onChange={(e) => editingJob ? setEditingJob({ ...editingJob, description: e.target.value }) : setNewJob({ ...newJob, description: e.target.value })}
+                  className="p-2 border rounded-lg w-full h-24 focus:ring-2 focus:ring-indigo-500"
                   required
                 />
-                <input
-                  type="text"
-                  placeholder="Company"
-                  value={editingJob ? editingJob.company : newJob.company || ''}
-                  onChange={(e) => editingJob ? setEditingJob({ ...editingJob, company: e.target.value }) : setNewJob({ ...newJob, company: e.target.value })}
-                  className="p-2 border rounded-lg w-full"
-                  required
+                <textarea
+                  placeholder="Requirements (comma-separated)"
+                  value={editingJob ? editingJob.requirements.join(', ') : newJob.requirements?.join(', ') || ''}
+                  onChange={(e) => {
+                    const reqs = e.target.value.split(',').map(r => r.trim());
+                    editingJob ? setEditingJob({ ...editingJob, requirements: reqs }) : setNewJob({ ...newJob, requirements: reqs });
+                  }}
+                  className="p-2 border rounded-lg w-full h-24 focus:ring-2 focus:ring-indigo-500"
                 />
-                <input
-                  type="text"
-                  placeholder="Location"
-                  value={editingJob ? editingJob.location : newJob.location || ''}
-                  onChange={(e) => editingJob ? setEditingJob({ ...editingJob, location: e.target.value }) : setNewJob({ ...newJob, location: e.target.value })}
-                  className="p-2 border rounded-lg w-full"
-                  required
-                />
-                <select
-                  value={editingJob ? editingJob.type : newJob.type || 'full-time'}
-                  onChange={(e) => editingJob ? setEditingJob({ ...editingJob, type: e.target.value as Job['type'] }) : setNewJob({ ...newJob, type: e.target.value as Job['type'] })}
-                  className="p-2 border rounded-lg w-full"
-                >
-                  <option value="full-time">Full Time</option>
-                  <option value="part-time">Part Time</option>
-                  <option value="contract">Contract</option>
-                  <option value="internship">Internship</option>
-                </select>
-              </div>
-              <textarea
-                placeholder="Description"
-                value={editingJob ? editingJob.description : newJob.description || ''}
-                onChange={(e) => editingJob ? setEditingJob({ ...editingJob, description: e.target.value }) : setNewJob({ ...newJob, description: e.target.value })}
-                className="p-2 border rounded-lg w-full h-24"
-                required
-              />
-              <textarea
-                placeholder="Requirements (comma-separated)"
-                value={editingJob ? editingJob.requirements.join(', ') : newJob.requirements?.join(', ') || ''}
-                onChange={(e) => {
-                  const reqs = e.target.value.split(',').map(r => r.trim());
-                  editingJob ? setEditingJob({ ...editingJob, requirements: reqs }) : setNewJob({ ...newJob, requirements: reqs });
-                }}
-                className="p-2 border rounded-lg w-full h-24"
-              />
-              <div className="flex gap-4">
-                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                  {editingJob ? 'Save Changes' : 'Add Job'}
-                </button>
-                {editingJob && (
-                  <button
-                    type="button"
-                    onClick={() => setEditingJob(null)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                <div className="flex gap-4 justify-end">
+                  <button 
+                    type="button" 
+                    onClick={() => resetForm()}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
                   >
                     Cancel
                   </button>
-                )}
-              </div>
-            </form>
+                  <button 
+                    type="submit" 
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >
+                    {editingJob ? 'Save Changes' : 'Add Job'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </motion.div>
         )}
 
@@ -335,10 +352,16 @@ export default function JobPortal() {
                   </div>
                   {(userRole === job.postedByRole) && isLoggedIn && (
                     <div className="flex gap-2">
-                      <button onClick={() => startEditing(job)} className="p-2 text-gray-500 hover:text-indigo-600">
+                      <button 
+                        onClick={() => startEditing(job)} 
+                        className="p-2 text-gray-500 hover:text-indigo-600"
+                      >
                         <Edit2 className="h-5 w-5" />
                       </button>
-                      <button onClick={() => handleDeleteJob(job._id)} className="p-2 text-gray-500 hover:text-red-600">
+                      <button 
+                        onClick={() => handleDeleteJob(job._id)} 
+                        className="p-2 text-gray-500 hover:text-red-600"
+                      >
                         <Trash2 className="h-5 w-5" />
                       </button>
                     </div>

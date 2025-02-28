@@ -10,7 +10,7 @@ export default function Login() {
   const [loginSuccess, setLoginSuccess] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e: { preventDefault: () => void; }) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!role) {
       alert('Please select a role');
@@ -62,7 +62,6 @@ export default function Login() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <img src="https://admission.charusat.ac.in/View%20Assets/images/University_Hero.png" alt="Logo" className="mx-auto mb-4 w-32" />
         <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">Login</h2>
 
         <form onSubmit={handleLogin}>
@@ -86,6 +85,10 @@ export default function Login() {
 
           <button type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-md hover:bg-indigo-700">Login</button>
         </form>
+
+        <div className="mt-4 text-center">
+          <button onClick={() => navigate('/forgot-password')} className="text-indigo-600 hover:text-indigo-700">Forgot Password?</button>
+        </div>
 
         <div className="mt-4 text-center">
           <button onClick={() => navigate('/signup')} className="text-indigo-600 hover:text-indigo-700">Don't have an account? Sign Up</button>

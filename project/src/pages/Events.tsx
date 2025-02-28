@@ -10,7 +10,7 @@ const cursorStyles = `
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: rgba(99, 102, 241, 0.3); /* indigo-600 with opacity */
+    background: rgba(99, 102, 241, 0.3);
     pointer-events: none;
     z-index: 9999;
     transition: transform 0.1s ease-out;
@@ -54,7 +54,6 @@ export default function Events() {
   axios.defaults.baseURL = 'http://localhost:5000';
 
   useEffect(() => {
-    // Cursor tracker setup
     const styleSheet = document.createElement('style');
     styleSheet.textContent = cursorStyles;
     document.head.appendChild(styleSheet);
@@ -86,7 +85,6 @@ export default function Events() {
       element.addEventListener('mouseleave', handleMouseLeave);
     });
 
-    // Authentication setup
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role') || '';
     if (token) {
@@ -95,10 +93,8 @@ export default function Events() {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
     
-    // Initial fetch
     fetchEvents();
 
-    // Cleanup
     return () => {
       window.removeEventListener('mousemove', moveCursor);
       interactiveElements.forEach(element => {
@@ -171,6 +167,7 @@ export default function Events() {
       createdBy: 'faculty'
     });
     setShowAddForm(false);
+    setEditingEvent(null);
   };
 
   const getTypeColor = (type: string) => {
@@ -190,7 +187,7 @@ export default function Events() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6"
+      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -232,123 +229,135 @@ export default function Events() {
 
         {(showAddForm || editingEvent) && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 p-8 bg-white rounded-2xl shadow-xl max-w-2xl mx-auto"
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            <h2 className="text-2xl font-bold mb-6 text-gray-900">
-              {editingEvent ? 'Edit Event' : 'Add New Event'}
-            </h2>
-            <form onSubmit={editingEvent ? handleEditEvent : handleAddEvent} className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
+            {/* Backdrop */}
+            <motion.div 
+              className="absolute inset-0 bg-black bg-opacity-50"
+              onClick={() => resetForm()}
+            />
+            
+            {/* Centered Form */}
+            <motion.div 
+              className="relative w-full max-w-2xl bg-white rounded-2xl shadow-xl p-8 m-4 max-h-[90vh] overflow-y-auto"
+              initial={{ scale: 0.95, y: -50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: -50 }}
+            >
+              <h2 className="text-2xl font-bold mb-6 text-gray-900">
+                {editingEvent ? 'Edit Event' : 'Add New Event'}
+              </h2>
+              <form onSubmit={editingEvent ? handleEditEvent : handleAddEvent} className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                    <input
+                      type="text"
+                      placeholder="Event Title"
+                      value={editingEvent ? editingEvent.title : newEvent.title || ''}
+                      onChange={(e) => {
+                        if (editingEvent) setEditingEvent({ ...editingEvent, title: e.target.value });
+                        else setNewEvent({ ...newEvent, title: e.target.value });
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input
+                      type="date"
+                      value={editingEvent ? editingEvent.date.split('T')[0] : newEvent.date || ''}
+                      onChange={(e) => {
+                        if (editingEvent) setEditingEvent({ ...editingEvent, date: e.target.value });
+                        else setNewEvent({ ...newEvent, date: e.target.value });
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                    <input
+                      type="text"
+                      placeholder="Location"
+                      value={editingEvent ? editingEvent.location : newEvent.location || ''}
+                      onChange={(e) => {
+                        if (editingEvent) setEditingEvent({ ...editingEvent, location: e.target.value });
+                        else setNewEvent({ ...newEvent, location: e.target.value });
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <select
+                      value={editingEvent ? editingEvent.type : newEvent.type || 'other'}
+                      onChange={(e) => {
+                        if (editingEvent) setEditingEvent({ ...editingEvent, type: e.target.value as Event['type'] });
+                        else setNewEvent({ ...newEvent, type: e.target.value as Event['type'] });
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      required
+                    >
+                      <option value="reunion">Reunion</option>
+                      <option value="workshop">Workshop</option>
+                      <option value="networking">Networking</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Image URL (optional)</label>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/image.jpg"
+                      value={editingEvent ? editingEvent.image : newEvent.image || ''}
+                      onChange={(e) => {
+                        if (editingEvent) setEditingEvent({ ...editingEvent, image: e.target.value });
+                        else setNewEvent({ ...newEvent, image: e.target.value });
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    />
+                  </div>
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                  <input
-                    type="text"
-                    placeholder="Event Title"
-                    value={editingEvent ? editingEvent.title : newEvent.title || ''}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    placeholder="Event Description"
+                    value={editingEvent ? editingEvent.description : newEvent.description || ''}
                     onChange={(e) => {
-                      if (editingEvent) setEditingEvent({ ...editingEvent, title: e.target.value });
-                      else setNewEvent({ ...newEvent, title: e.target.value });
+                      if (editingEvent) setEditingEvent({ ...editingEvent, description: e.target.value });
+                      else setNewEvent({ ...newEvent, description: e.target.value });
                     }}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent h-32 transition-all"
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input
-                    type="date"
-                    value={editingEvent ? editingEvent.date.split('T')[0] : newEvent.date || ''}
-                    onChange={(e) => {
-                      if (editingEvent) setEditingEvent({ ...editingEvent, date: e.target.value });
-                      else setNewEvent({ ...newEvent, date: e.target.value });
-                    }}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                  <input
-                    type="text"
-                    placeholder="Location"
-                    value={editingEvent ? editingEvent.location : newEvent.location || ''}
-                    onChange={(e) => {
-                      if (editingEvent) setEditingEvent({ ...editingEvent, location: e.target.value });
-                      else setNewEvent({ ...newEvent, location: e.target.value });
-                    }}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                  <select
-                    value={editingEvent ? editingEvent.type : newEvent.type || 'other'}
-                    onChange={(e) => {
-                      if (editingEvent) setEditingEvent({ ...editingEvent, type: e.target.value as Event['type'] });
-                      else setNewEvent({ ...newEvent, type: e.target.value as Event['type'] });
-                    }}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    required
-                  >
-                    <option value="reunion">Reunion</option>
-                    <option value="workshop">Workshop</option>
-                    <option value="networking">Networking</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image URL (optional)</label>
-                  <input
-                    type="url"
-                    placeholder="https://example.com/image.jpg"
-                    value={editingEvent ? editingEvent.image : newEvent.image || ''}
-                    onChange={(e) => {
-                      if (editingEvent) setEditingEvent({ ...editingEvent, image: e.target.value });
-                      else setNewEvent({ ...newEvent, image: e.target.value });
-                    }}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  placeholder="Event Description"
-                  value={editingEvent ? editingEvent.description : newEvent.description || ''}
-                  onChange={(e) => {
-                    if (editingEvent) setEditingEvent({ ...editingEvent, description: e.target.value });
-                    else setNewEvent({ ...newEvent, description: e.target.value });
-                  }}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent h-32 transition-all"
-                  required
-                />
-              </div>
-              <div className="flex gap-4">
-                <motion.button
-                  type="submit"
-                  className="flex-1 p-3 text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-md hover:from-green-600 hover:to-emerald-700 transition-all"
-                  whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(16, 185, 129, 0.4)' }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <PlusCircle className="inline h-5 w-5 mr-2" />
-                  {editingEvent ? 'Save Changes' : 'Add Event'}
-                </motion.button>
-                {editingEvent && (
+                <div className="flex gap-4 justify-end">
                   <motion.button
                     type="button"
-                    onClick={() => setEditingEvent(null)}
-                    className="flex-1 p-3 text-white bg-gradient-to-r from-red-500 to-rose-600 rounded-lg shadow-md hover:from-red-600 hover:to-rose-700 transition-all"
-                    whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(244, 63, 94, 0.4)' }}
+                    onClick={() => resetForm()}
+                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-all"
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    Cancel Edit
+                    Cancel
                   </motion.button>
-                )}
-              </div>
-            </form>
+                  <motion.button
+                    type="submit"
+                    className="px-4 py-2 text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-md hover:from-green-600 hover:to-emerald-700 transition-all"
+                    whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(16, 185, 129, 0.4)' }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {editingEvent ? 'Save Changes' : 'Add Event'}
+                  </motion.button>
+                </div>
+              </form>
+            </motion.div>
           </motion.div>
         )}
 
