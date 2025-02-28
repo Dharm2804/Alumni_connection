@@ -4,71 +4,84 @@ const Alumni = require('../models/Alumni');
 const Job = require('../models/Job');
 const bcrypt = require('bcryptjs');
 const Event = require('../models/eventModel');
-const { sendWelcomeEmail } = require('./emailService');
+const { sendWelcomeEmail , sendOtpEmail} = require('./emailService');
 const { sendResetEmail } = require('./sendreset_email');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 require('dotenv').config();
 
+const generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+};
+
+// Signup
 router.post('/signup', async (req, res) => {
-  const { 
-    name, 
-    email, 
-    password, 
-    role, 
-    engineeringType, 
-    passoutYear, 
-    companyName, 
-    companyLocation, 
-    linkedin,
-    profileImage
-  } = req.body;
+  const { name, email, password, role } = req.body;
 
   try {
-    // Check if user already exists
     let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+    const otp = generateOtp();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Save to User collection (for all roles)
-    user = new User({ name, email, password: hashedPassword, role });
+    user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      otp,
+      otpExpires,
+      isVerified: false,
+    });
     await user.save();
 
-    // If role is alumni, save additional data to Alumni collection
-    if (role === 'alumni') {
-      const alumni = new Alumni({
-        name,
-        profileImage,
-        email,
-        engineeringType,
-        passoutYear,
-        companyName,
-        role, // This is the role in the company (from signup form)
-        companyLocation,
-        linkedin,
-      });
-      await alumni.save();
-    }
+    await sendOtpEmail(email, name, otp);
 
-    // Send welcome email
-    await sendWelcomeEmail(email, name);
-
-    res.status(201).json({ message: 'User registered successfully' });
+    res.status(201).json({ message: 'OTP sent to your email. Please verify.' });
   } catch (err) {
     console.error(err);
-    if (err.code === 11000) {
-      res.status(400).json({ message: 'Email already exists' });
-    } else {
-      res.status(500).json({ message: 'Server error' });
-    }
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
+// Verify OTP
+router.post('/verify-otp', async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'User already verified' });
+    }
+
+    if (user.otp !== otp || user.otpExpires < Date.now()) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    await sendWelcomeEmail(email, user.name);
+
+    res.status(200).json({ message: 'Email verified successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Login
 router.post('/login', async (req, res) => {
   const { email, password, role } = req.body;
 
@@ -78,8 +91,12 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    if (!user.isVerified) {
+      return res.status(403).json({ message: 'Please verify your email' });
+    }
+
     if (user.role !== role) {
-      return res.status(400).json({ message: 'Invalid role selected' });
+      return res.status(400).json({ message: 'Invalid role' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -88,6 +105,36 @@ router.post('/login', async (req, res) => {
     }
 
     res.json({ message: 'Login successful', user: { email: user.email, role: user.role } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Resend OTP
+router.post('/resend-otp', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'User already verified' });
+    }
+
+    const otp = generateOtp();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.otp = otp;
+    user.otpExpires = otpExpires;
+    await user.save();
+
+    await sendOtpEmail(email, user.name, otp);
+
+    res.status(200).json({ message: 'New OTP sent to your email' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -110,7 +157,7 @@ router.post('/forgot-password', async (req, res) => {
     }
 
     const token = jwt.sign({ email }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
-    const resetUrl = `http://localhost:5000/reset-password/${token}`;
+    const resetUrl = `http://localhost:5173/reset-password/${token}`;
 
     await sendResetEmail(email, resetUrl);
 

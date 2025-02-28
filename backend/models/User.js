@@ -19,17 +19,18 @@ const UserSchema = new mongoose.Schema({
     type: String,
     enum: ['student', 'faculty', 'alumni'],
     required: true,
-    default: 'student', // Default value if role is not provided
-  }
-  
+    default: 'student',
+  },
+  otp: {
+    type: String,
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  otpExpires: {
+    type: Date,
+  },
 });
-
-// Hash password before saving
-// UserSchema.pre('save', async function (next) {
-//   if (this.isModified('password')) {
-//     this.password = await bcrypt.hash(this.password, 10);
-//   }
-//   next();
-// });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -10,6 +10,7 @@ import Login from './Login';
 import Profile from './Profile';
 import ForgotPassword from './ForgotPassword';
 import ResetPassword from './ResetPassword';
+import VerifyOtp from './VerifyOtp';
 import ProtectedRoute from '../components/ProtectedRoute';
 
 function App() {
@@ -22,6 +23,11 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/verify-otp" element={<VerifyOtp />} />
+
+            {/* Protected Routes */}
             <Route
               path="/alumni"
               element={
@@ -62,9 +68,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password/:token" element={<ResetPassword />} />
           </Routes>
         </main>
       </div>
