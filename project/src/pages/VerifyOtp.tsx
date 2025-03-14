@@ -4,30 +4,34 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 
 export default function VerifyOtp() {
-  const [otp, setOtp] = useState<string>(''); // Explicitly typed as string
-  const [error, setError] = useState<string>(''); // Explicitly typed as string
-  const [success, setSuccess] = useState<boolean>(false); // Explicitly typed as boolean
+  const [otp, setOtp] = useState<string>(''); 
+  const [error, setError] = useState<string>(''); 
+  const [success, setSuccess] = useState<boolean>(false); 
+  const [isLoading, setIsLoading] = useState<boolean>(false); // Added loading state
   const navigate = useNavigate();
   const location = useLocation();
-  const email = (location.state as { email?: string } | undefined)?.email || ''; // Type assertion for location.state
+  const email = (location.state as { email?: string } | undefined)?.email || ''; 
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => { // Typed FormEvent with HTMLFormElement
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!otp) {
       setError('Please enter the OTP');
       return;
     }
 
+    setIsLoading(true); // Start loading
     try {
-      const response = await axios.post<{ token: string }>('http://localhost:5000/api/verify-otp', { email, otp }); // Typed response data
+      const response = await axios.post<{ token: string }>('http://localhost:5000/api/verify-otp', { email, otp });
       setSuccess(true);
       setError('');
-      localStorage.setItem('token', response.data.token); // Store token after verification
+      localStorage.setItem('token', response.data.token);
       setTimeout(() => {
         setSuccess(false);
-        navigate('/login'); // Redirect to login after successful OTP verification
+        setIsLoading(false); // Stop loading
+        navigate('/login');
       }, 2000);
     } catch (error) {
+      setIsLoading(false); // Stop loading on error
       setSuccess(false);
       if (axios.isAxiosError(error)) {
         setError(error.response?.data.message || 'Invalid OTP');
@@ -38,12 +42,17 @@ export default function VerifyOtp() {
   };
 
   const handleResendOtp = async () => {
+    setIsLoading(true); // Start loading
     try {
       await axios.post('http://localhost:5000/api/resend-otp', { email });
       setError('');
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 2000); // Briefly show success
+      setTimeout(() => {
+        setSuccess(false);
+        setIsLoading(false); // Stop loading
+      }, 2000);
     } catch (error) {
+      setIsLoading(false); // Stop loading on error
       if (axios.isAxiosError(error)) {
         setError(error.response?.data.message || 'Failed to resend OTP');
       } else {
@@ -53,7 +62,47 @@ export default function VerifyOtp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 flex items-center justify-center p-4 relative">
+      {/* Colorful Loading Animation */}
+      {isLoading && (
+        <motion.div
+          className="absolute inset-0 flex items-center justify-center z-20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div className="flex flex-col items-center">
+            <svg
+              className="animate-spin h-16 w-16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 64 64"
+            >
+              <circle
+                cx="32"
+                cy="32"
+                r="28"
+                fill="none"
+                stroke="url(#gradient)"
+                strokeWidth="8"
+                strokeLinecap="round"
+              />
+              <defs>
+                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#4F46E5" />  {/* Indigo */}
+                  <stop offset="25%" stopColor="#9333EA" /> {/* Purple */}
+                  <stop offset="50%" stopColor="#EC4899" /> {/* Pink */}
+                  <stop offset="75%" stopColor="#F59E0B" /> {/* Amber */}
+                  <stop offset="100%" stopColor="#10B981" /> {/* Green */}
+                </linearGradient>
+              </defs>
+            </svg>
+            <p className="mt-4 text-lg font-medium text-indigo-600 animate-pulse">
+              Processing...
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {success && (
         <motion.div
           className="absolute top-4 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg text-center z-10"
@@ -67,7 +116,7 @@ export default function VerifyOtp() {
       )}
 
       <motion.div
-        className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-100"
+        className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-100 relative z-10"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
@@ -93,7 +142,11 @@ export default function VerifyOtp() {
           </div>
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200 shadow-md hover:shadow-lg"
+            disabled={isLoading} // Disable button during loading
+            className={`w-full py-3 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg text-white
+              ${isLoading 
+                ? 'bg-indigo-400 cursor-not-allowed' 
+                : 'bg-indigo-600 hover:bg-indigo-700'}`}
           >
             Verify OTP
           </button>
@@ -102,7 +155,10 @@ export default function VerifyOtp() {
         <div className="mt-6 text-center">
           <button
             onClick={handleResendOtp}
-            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+            disabled={isLoading} // Disable button during loading
+            className={`text-sm font-medium ${isLoading 
+              ? 'text-indigo-400 cursor-not-allowed' 
+              : 'text-indigo-600 hover:text-indigo-800'}`}
           >
             Resend OTP
           </button>

@@ -9,6 +9,7 @@ export default function Login() {
   const [role, setRole] = useState('');
   const [loginSuccess, setLoginSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: { preventDefault: () => void; }) => {
@@ -17,6 +18,8 @@ export default function Login() {
       setError('Please select a role');
       return;
     }
+
+    setIsLoading(true);
     try {
       const response = await axios.post('http://localhost:5000/api/login', {
         email,
@@ -33,9 +36,11 @@ export default function Login() {
 
       setTimeout(() => {
         setLoginSuccess(false);
+        setIsLoading(false);
         navigate('/');
       }, 2000);
     } catch (error) {
+      setIsLoading(false);
       setLoginSuccess(false);
       if (axios.isAxiosError(error)) {
         setError(error.response?.data.message || 'Invalid credentials');
@@ -46,7 +51,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 flex items-center justify-center p-4 relative">
+      {/* Success Message */}
       {loginSuccess && (
         <motion.div
           className="absolute top-4 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg text-center z-10"
@@ -59,8 +65,48 @@ export default function Login() {
         </motion.div>
       )}
 
+      {/* Colorful Loading Animation */}
+      {isLoading && (
+        <motion.div
+          className="absolute inset-0 flex items-center justify-center z-20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div className="flex flex-col items-center">
+            <svg
+              className="animate-spin h-16 w-16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 64 64"
+            >
+              <circle
+                cx="32"
+                cy="32"
+                r="28"
+                fill="none"
+                stroke="url(#gradient)"
+                strokeWidth="8"
+                strokeLinecap="round"
+              />
+              <defs>
+                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#4F46E5" />  {/* Indigo */}
+                  <stop offset="25%" stopColor="#9333EA" /> {/* Purple */}
+                  <stop offset="50%" stopColor="#EC4899" /> {/* Pink */}
+                  <stop offset="75%" stopColor="#F59E0B" /> {/* Amber */}
+                  <stop offset="100%" stopColor="#10B981" /> {/* Green */}
+                </linearGradient>
+              </defs>
+            </svg>
+            <p className="mt-4 text-lg font-medium text-indigo-600 animate-pulse">
+              Processing...
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       <motion.div
-        className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-100"
+        className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-100 relative z-10"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
@@ -110,9 +156,39 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200 shadow-md hover:shadow-lg"
+            disabled={isLoading}
+            className={`w-full py-3 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg flex items-center justify-center
+              ${isLoading 
+                ? 'bg-indigo-400 cursor-not-allowed' 
+                : 'bg-indigo-600 hover:bg-indigo-700'}`}
           >
-            Sign In
+            {isLoading ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Signing In...
+              </>
+            ) : (
+              'Sign In'
+            )}
           </button>
         </form>
 

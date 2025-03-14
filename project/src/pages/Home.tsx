@@ -26,6 +26,7 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [logoutMessage, setLogoutMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // Added loading state
   const [, setIsHovering] = useState(false);
 
   useEffect(() => {
@@ -82,14 +83,16 @@ export default function Home() {
   }, []);
 
   const handleLogout = () => {
+    setIsLoading(true); // Start loading
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     setIsLoggedIn(false);
     setUserRole('');
-    setLogoutMessage('Logout successfully');
+    setLogoutMessage('Logout successful');
 
     setTimeout(() => {
       setLogoutMessage('');
+      setIsLoading(false); // Stop loading
     }, 3000);
   };
 
@@ -126,6 +129,7 @@ export default function Home() {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 100 }}
       transition={{ duration: 0.5 }}
+      className="relative"
     >
       <div className="bg-gray-100 min-h-screen">
         {/* Hero Section */}
@@ -205,20 +209,59 @@ export default function Home() {
               >
                 <button
                   onClick={handleLogout}
-                  className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  disabled={isLoading}
+                  className={`inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                    isLoading
+                      ? 'cursor-not-allowed opacity-70'
+                      : 'hover:bg-indigo-700 hover:text-white'
+                  }`}
                 >
-                  Logout
+                  {isLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-600"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Logging out...
+                    </>
+                  ) : (
+                    'Logout'
+                  )}
                 </button>
               </motion.div>
             )}
           </div>
         </div>
 
-        {/* Logout Message */}
+        {/* Centered Logout Message */}
         {logoutMessage && (
-          <div className="fixed top-0 left-0 right-0 p-4 bg-green-500 text-white text-center">
-            {logoutMessage}
-          </div>
+          <motion.div
+            className="fixed inset-0 flex items-center justify-center z-50"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="bg-green-500 text-white px-6 py-3 rounded-full shadow-lg text-center">
+              🎉 {logoutMessage} 🎉
+            </div>
+          </motion.div>
         )}
 
         {/* Features Section */}
