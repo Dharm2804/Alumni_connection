@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Search, MapPin, Building2, Clock, Briefcase, PlusCircle, Edit2, Trash2 } from 'lucide-react';
+import { Search, MapPin, Building2, Clock, Briefcase, PlusCircle, Edit2, Trash2, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
+import * as XLSX from 'xlsx'; // Import xlsx for Excel file generation
 
 const cursorStyles = `
   .cursor-tracker {
@@ -32,6 +33,7 @@ type Job = {
   postedDate: string;
   type: 'full-time' | 'part-time' | 'contract' | 'internship';
   postedByRole: 'alumni' | 'faculty';
+  registerLink?: string;
 };
 
 export default function JobPortal() {
@@ -45,12 +47,13 @@ export default function JobPortal() {
     description: '',
     requirements: [],
     type: 'full-time',
+    registerLink: '',
   });
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
-  const [, setIsHovering] = useState(false); // Fixed unused variable warning
+  const [, setIsHovering] = useState(false);
 
   axios.defaults.baseURL = 'http://localhost:5000';
 
@@ -72,7 +75,7 @@ export default function JobPortal() {
       cursor.classList.add('hover');
       setIsHovering(true);
     };
-    
+
     const handleMouseLeave = () => {
       cursor.classList.remove('hover');
       setIsHovering(false);
@@ -81,7 +84,7 @@ export default function JobPortal() {
     window.addEventListener('mousemove', moveCursor);
 
     const interactiveElements = document.querySelectorAll('button, input, select, textarea');
-    interactiveElements.forEach(element => {
+    interactiveElements.forEach((element) => {
       element.addEventListener('mouseenter', handleMouseEnter);
       element.addEventListener('mouseleave', handleMouseLeave);
     });
@@ -97,7 +100,7 @@ export default function JobPortal() {
 
     return () => {
       window.removeEventListener('mousemove', moveCursor);
-      interactiveElements.forEach(element => {
+      interactiveElements.forEach((element) => {
         element.removeEventListener('mouseenter', handleMouseEnter);
         element.removeEventListener('mouseleave', handleMouseLeave);
       });
@@ -156,6 +159,30 @@ export default function JobPortal() {
     }
   };
 
+  const handleDownloadJobs = () => {
+    // Prepare data for Excel
+    const worksheetData = jobs.map(job => ({
+      'Job Title': job.title,
+      'Company': job.company,
+      'Location': job.location,
+      'Description': job.description,
+      'Requirements': job.requirements.join(', '),
+      'Type': job.type,
+      'Posted By': job.postedBy,
+      'Posted Date': new Date(job.postedDate).toLocaleDateString(),
+      'Posted By Role': job.postedByRole,
+      'Register Link': job.registerLink || 'N/A',
+    }));
+
+    // Create a worksheet
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Jobs');
+
+    // Download the Excel file
+    XLSX.writeFile(workbook, 'Job_List.xlsx');
+  };
+
   const startEditing = (job: Job) => {
     setEditingJob(job);
     setShowAddForm(false);
@@ -169,20 +196,22 @@ export default function JobPortal() {
       description: '',
       requirements: [],
       type: 'full-time',
+      registerLink: '',
     });
     setShowAddForm(false);
-    setEditingJob(null); // Added to ensure clean state
+    setEditingJob(null);
   };
 
-  const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredJobs = jobs.filter((job) => {
+    const matchesSearch =
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.company.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === 'all' || job.type === selectedType;
     return matchesSearch && matchesType;
   });
 
   return (
-    <motion.div className="p-6 min-h-screen bg-gray-100 relative">
+    <motion.div className="p-6 min-h-screen bg-white-100 relative">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
           <motion.h1
@@ -192,16 +221,28 @@ export default function JobPortal() {
           >
             Job Portal
           </motion.h1>
-          {(userRole === 'alumni' || userRole === 'faculty') && isLoggedIn && !editingJob && (
-            <motion.button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-              whileHover={{ scale: 1.05 }}
-            >
-              <PlusCircle className="h-5 w-5 mr-2" />
-              {showAddForm ? 'Cancel' : 'Add Job'}
-            </motion.button>
-          )}
+          <div className="flex gap-4">
+            {(userRole === 'alumni' || userRole === 'faculty') && isLoggedIn && !editingJob && (
+              <motion.button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                whileHover={{ scale: 1.05 }}
+              >
+                <PlusCircle className="h-5 w-5 mr-2" />
+                {showAddForm ? 'Cancel' : 'Add Job'}
+              </motion.button>
+            )}
+            {userRole === 'faculty' && isLoggedIn && (
+              <motion.button
+                onClick={handleDownloadJobs}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                whileHover={{ scale: 1.05 }}
+              >
+                <Download className="h-5 w-5 mr-2" />
+                Download Jobs
+              </motion.button>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 mb-8">
@@ -235,14 +276,11 @@ export default function JobPortal() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {/* Backdrop */}
-            <motion.div 
+            <motion.div
               className="absolute inset-0 bg-black bg-opacity-50"
               onClick={() => resetForm()}
             />
-            
-            {/* Centered Form */}
-            <motion.div 
+            <motion.div
               className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl p-6 m-4 max-h-[90vh] overflow-y-auto"
               initial={{ scale: 0.95, y: -50 }}
               animate={{ scale: 1, y: 0 }}
@@ -257,7 +295,11 @@ export default function JobPortal() {
                     type="text"
                     placeholder="Job Title"
                     value={editingJob ? editingJob.title : newJob.title || ''}
-                    onChange={(e) => editingJob ? setEditingJob({ ...editingJob, title: e.target.value }) : setNewJob({ ...newJob, title: e.target.value })}
+                    onChange={(e) =>
+                      editingJob
+                        ? setEditingJob({ ...editingJob, title: e.target.value })
+                        : setNewJob({ ...newJob, title: e.target.value })
+                    }
                     className="p-2 border rounded-lg w-full focus:ring-2 focus:ring-indigo-500"
                     required
                   />
@@ -265,7 +307,11 @@ export default function JobPortal() {
                     type="text"
                     placeholder="Company"
                     value={editingJob ? editingJob.company : newJob.company || ''}
-                    onChange={(e) => editingJob ? setEditingJob({ ...editingJob, company: e.target.value }) : setNewJob({ ...newJob, company: e.target.value })}
+                    onChange={(e) =>
+                      editingJob
+                        ? setEditingJob({ ...editingJob, company: e.target.value })
+                        : setNewJob({ ...newJob, company: e.target.value })
+                    }
                     className="p-2 border rounded-lg w-full focus:ring-2 focus:ring-indigo-500"
                     required
                   />
@@ -273,13 +319,21 @@ export default function JobPortal() {
                     type="text"
                     placeholder="Location"
                     value={editingJob ? editingJob.location : newJob.location || ''}
-                    onChange={(e) => editingJob ? setEditingJob({ ...editingJob, location: e.target.value }) : setNewJob({ ...newJob, location: e.target.value })}
+                    onChange={(e) =>
+                      editingJob
+                        ? setEditingJob({ ...editingJob, location: e.target.value })
+                        : setNewJob({ ...newJob, location: e.target.value })
+                    }
                     className="p-2 border rounded-lg w-full focus:ring-2 focus:ring-indigo-500"
                     required
                   />
                   <select
                     value={editingJob ? editingJob.type : newJob.type || 'full-time'}
-                    onChange={(e) => editingJob ? setEditingJob({ ...editingJob, type: e.target.value as Job['type'] }) : setNewJob({ ...newJob, type: e.target.value as Job['type'] })}
+                    onChange={(e) =>
+                      editingJob
+                        ? setEditingJob({ ...editingJob, type: e.target.value as Job['type'] })
+                        : setNewJob({ ...newJob, type: e.target.value as Job['type'] })
+                    }
                     className="p-2 border rounded-lg w-full focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="full-time">Full Time</option>
@@ -291,29 +345,50 @@ export default function JobPortal() {
                 <textarea
                   placeholder="Description"
                   value={editingJob ? editingJob.description : newJob.description || ''}
-                  onChange={(e) => editingJob ? setEditingJob({ ...editingJob, description: e.target.value }) : setNewJob({ ...newJob, description: e.target.value })}
+                  onChange={(e) =>
+                    editingJob
+                      ? setEditingJob({ ...editingJob, description: e.target.value })
+                      : setNewJob({ ...newJob, description: e.target.value })
+                  }
                   className="p-2 border rounded-lg w-full h-24 focus:ring-2 focus:ring-indigo-500"
                   required
                 />
                 <textarea
                   placeholder="Requirements (comma-separated)"
-                  value={editingJob ? editingJob.requirements.join(', ') : newJob.requirements?.join(', ') || ''}
+                  value={
+                    editingJob
+                      ? editingJob.requirements.join(', ')
+                      : newJob.requirements?.join(', ') || ''
+                  }
                   onChange={(e) => {
-                    const reqs = e.target.value.split(',').map(r => r.trim());
-                    editingJob ? setEditingJob({ ...editingJob, requirements: reqs }) : setNewJob({ ...newJob, requirements: reqs });
+                    const reqs = e.target.value.split(',').map((r) => r.trim());
+                    editingJob
+                      ? setEditingJob({ ...editingJob, requirements: reqs })
+                      : setNewJob({ ...newJob, requirements: reqs });
                   }}
                   className="p-2 border rounded-lg w-full h-24 focus:ring-2 focus:ring-indigo-500"
                 />
+                <input
+                  type="url"
+                  placeholder="Register Link (optional)"
+                  value={editingJob ? editingJob.registerLink || '' : newJob.registerLink || ''}
+                  onChange={(e) =>
+                    editingJob
+                      ? setEditingJob({ ...editingJob, registerLink: e.target.value })
+                      : setNewJob({ ...newJob, registerLink: e.target.value })
+                  }
+                  className="p-2 border rounded-lg w-full focus:ring-2 focus:ring-indigo-500"
+                />
                 <div className="flex gap-4 justify-end">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => resetForm()}
                     className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                   >
                     {editingJob ? 'Save Changes' : 'Add Job'}
@@ -350,16 +425,16 @@ export default function JobPortal() {
                       {job.location}
                     </div>
                   </div>
-                  {(userRole === job.postedByRole) && isLoggedIn && (
+                  {userRole === job.postedByRole && isLoggedIn && (
                     <div className="flex gap-2">
-                      <button 
-                        onClick={() => startEditing(job)} 
+                      <button
+                        onClick={() => startEditing(job)}
                         className="p-2 text-gray-500 hover:text-indigo-600"
                       >
                         <Edit2 className="h-5 w-5" />
                       </button>
-                      <button 
-                        onClick={() => handleDeleteJob(job._id)} 
+                      <button
+                        onClick={() => handleDeleteJob(job._id)}
                         className="p-2 text-gray-500 hover:text-red-600"
                       >
                         <Trash2 className="h-5 w-5" />
@@ -379,11 +454,23 @@ export default function JobPortal() {
                 <div className="mt-6 flex items-center justify-between">
                   <div className="text-sm text-gray-500">
                     <Clock className="h-4 w-4 mr-1 inline text-blue-500" />
-                    Posted on {new Date(job.postedDate).toLocaleDateString()} by {job.postedBy} ({job.postedByRole})
+                    Posted on {new Date(job.postedDate).toLocaleDateString()} by {job.postedBy} (
+                    {job.postedByRole})
                   </div>
-                  <button className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                    Apply Now
-                  </button>
+                  {job.registerLink ? (
+                    <a
+                      href={job.registerLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    >
+                      Register
+                    </a>
+                  ) : (
+                    <button className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                      Apply Now
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>

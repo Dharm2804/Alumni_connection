@@ -64,52 +64,58 @@ export default function Signup() {
     setFormData((prev) => ({ ...prev, role: e.target.value }));
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  // Signup.tsx
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault();
 
-    if (!formData.role) {
-      setError('Please select a role.');
+  if (!formData.role) {
+    setError('Please select a role.');
+    return;
+  }
+
+  if (formData.role === 'alumni') {
+    if (!formData.engineeringType || !formData.passoutYear || 
+        !formData.companyName || !formData.companyLocation) {
+      setError('Please fill in all required alumni fields.');
       return;
     }
+  }
 
-    if (formData.role === 'alumni') {
-      if (!formData.engineeringType || !formData.passoutYear || !formData.companyName || !formData.companyLocation || !formData.profileImage) {
-        setError('Please fill in all required alumni fields, including profile image.');
-        return;
-      }
+  setIsLoading(true);
+  try {
+    const response = await fetch('http://localhost:5000/api/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      localStorage.setItem('userEmail', formData.email);
+      setSignupSuccess(true);
+      setError('');
+      setTimeout(() => {
+        setSignupSuccess(false);
+        setIsLoading(false);
+        navigate('/verify-otp', { 
+          state: { 
+            email: formData.email,
+            role: formData.role 
+          } 
+        });
+      }, 2000);
+    } else {
+      setError(data.message || 'Signup Failed!');
+      setIsLoading(false);
     }
-
-    setIsLoading(true); // Start loading
-    try {
-      const response = await fetch('http://localhost:5000/api/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('userEmail', formData.email);
-        setSignupSuccess(true);
-        setError('');
-        setTimeout(() => {
-          setSignupSuccess(false);
-          setIsLoading(false); // Stop loading
-          navigate('/verify-otp', { state: { email: formData.email } });
-        }, 2000);
-      } else {
-        setError(data.message || 'Signup Failed!');
-        setIsLoading(false); // Stop loading on error
-      }
-    } catch (error) {
-      console.error('Signup error:', error);
-      setError('Something went wrong!');
-      setIsLoading(false); // Stop loading on error
-    }
-  };
+  } catch (error) {
+    console.error('Signup error:', error);
+    setError('Something went wrong!');
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 flex items-center justify-center p-4">

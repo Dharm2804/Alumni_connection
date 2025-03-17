@@ -187,7 +187,7 @@ export default function Events() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 relative"
+      className="min-h-screen bg-gradient-to-br from-white-50 to-gray-100 p-6 relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}

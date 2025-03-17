@@ -1,3 +1,4 @@
+// jobModel.js
 const mongoose = require('mongoose');
 
 const jobSchema = new mongoose.Schema({
@@ -10,6 +11,7 @@ const jobSchema = new mongoose.Schema({
   postedBy: { type: String, required: true },
   postedByRole: { type: String, enum: ['alumni', 'faculty'], required: true },
   postedDate: { type: Date, required: true },
+  registerLink: { type: String, required: false }, // New field for the registration link
 });
 
 module.exports = mongoose.model('Job', jobSchema);

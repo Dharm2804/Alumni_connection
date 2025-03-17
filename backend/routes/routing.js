@@ -14,21 +14,35 @@ const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
 };
 
-// Signup
+// In your router file
 router.post('/signup', async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { 
+    name, 
+    email, 
+    password, 
+    role, 
+    engineeringType, 
+    passoutYear, 
+    companyName, 
+    companyLocation, 
+    linkedin, 
+    profileImage 
+  } = req.body;
 
   try {
+    // Check if user already exists
     let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     const otp = generateOtp();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
+    // Create new user
     user = new User({
       name,
       email,
@@ -40,9 +54,37 @@ router.post('/signup', async (req, res) => {
     });
     await user.save();
 
+    // If role is alumni, create alumni profile
+    if (role === 'alumni') {
+      if (!engineeringType || !passoutYear || !companyName || !companyLocation) {
+        // Roll back user creation if alumni data is incomplete
+        await User.findByIdAndDelete(user._id);
+        return res.status(400).json({ 
+          message: 'All alumni fields are required' 
+        });
+      }
+
+      const alumni = new Alumni({
+        name,
+        email,
+        engineeringType,
+        passoutYear,
+        companyName,
+        companyLocation,
+        linkedin: linkedin || '',
+        profileImage: profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
+        role: 'alumni'  // Adding role field to alumni schema if needed
+      });
+      await alumni.save();
+    }
+
+    // Send OTP email
     await sendOtpEmail(email, name, otp);
 
-    res.status(201).json({ message: 'OTP sent to your email. Please verify.' });
+    res.status(201).json({ 
+      message: 'OTP sent to your email. Please verify.',
+      userId: user._id
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -271,7 +313,18 @@ router.get('/get_jobs', async (req, res) => {
 // Add a new job
 router.post('/add_jobs', async (req, res) => {
   try {
-    const { title, company, location, description, requirements, type, postedBy, postedByRole, postedDate } = req.body;
+    const {
+      title,
+      company,
+      location,
+      description,
+      requirements,
+      type,
+      postedBy,
+      postedByRole,
+      postedDate,
+      registerLink, // Added registerLink
+    } = req.body;
     const newJob = new Job({
       title,
       company,
@@ -282,6 +335,7 @@ router.post('/add_jobs', async (req, res) => {
       postedBy,
       postedByRole,
       postedDate,
+      registerLink, // Include in the new job
     });
     await newJob.save();
     res.status(201).json(newJob);
@@ -307,7 +361,7 @@ router.put('/update_jobs/:id', async (req, res) => {
 });
 
 // Delete a job
-router.delete('/delete_jobs/:id',  async (req, res) => {
+router.delete('/delete_jobs/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const deletedJob = await Job.findByIdAndDelete(id);
@@ -443,6 +497,25 @@ router.put('/update_profile', async (req, res) => {
   } catch (error) {
     console.error('Profile update error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+// Get statistics (total jobs, alumni, events)
+router.get('/get_stats', async (req, res) => {
+  try {
+    const totalJobs = await Job.countDocuments();
+    const totalAlumni = await Alumni.countDocuments();
+    const totalEvents = await Event.countDocuments();
+
+    res.status(200).json({
+      totalJobs,
+      totalAlumni,
+      totalEvents,
+    });
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    res.status(500).json({ message: 'Failed to fetch statistics', error });
   }
 });
 
