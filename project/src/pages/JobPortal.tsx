@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Search, MapPin, Building2, Clock, Briefcase, PlusCircle, Edit2, Trash2, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
-import * as XLSX from 'xlsx'; // Import xlsx for Excel file generation
+import * as XLSX from 'xlsx';
 
 const cursorStyles = `
   .cursor-tracker {
@@ -160,7 +160,6 @@ export default function JobPortal() {
   };
 
   const handleDownloadJobs = () => {
-    // Prepare data for Excel
     const worksheetData = jobs.map(job => ({
       'Job Title': job.title,
       'Company': job.company,
@@ -174,12 +173,9 @@ export default function JobPortal() {
       'Register Link': job.registerLink || 'N/A',
     }));
 
-    // Create a worksheet
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Jobs');
-
-    // Download the Excel file
     XLSX.writeFile(workbook, 'Job_List.xlsx');
   };
 
@@ -403,7 +399,7 @@ export default function JobPortal() {
           {filteredJobs.map((job) => (
             <motion.div
               key={job._id}
-              className="bg-white rounded-xl shadow-md overflow-hidden"
+              className="bg-white rounded-xl shadow-md overflow-hidden border-2 border-purple-500"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               whileHover={{ scale: 1.02 }}

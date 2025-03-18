@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Search, MapPin, Building2, Mail, Linkedin } from "lucide-react";
+import { Search, MapPin, Building2, Mail, Linkedin, Download } from "lucide-react";
 import { motion } from "framer-motion";
+import * as XLSX from "xlsx"; // Import xlsx for Excel file generation
 
 interface Alumni {
   _id: string;
@@ -22,14 +23,20 @@ export default function AlumniDirectory() {
   const [alumniData, setAlumniData] = useState<Alumni[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [userRole, setUserRole] = useState<string>(""); // State for user role
   const alumniPerPage = 6;
 
   useEffect(() => {
+    // Fetch user role from localStorage
+    const role = localStorage.getItem("role") || "";
+    setUserRole(role);
+
     const fetchAlumni = async () => {
       setLoading(true);
       try {
         const response = await fetch(
-          `/api/get_alumni_paginated?page=${currentPage}&limit=${alumniPerPage}&search=${searchTerm}&year=${selectedYear}`
+          `/api/get_alumni_paginated?page=${currentPage}&limit=${alumniPerPage}&search=${searchTerm}&year=${selectedYear}`,
+          { credentials: "include" } // Include credentials for authentication
         );
         const data = await response.json();
 
@@ -49,24 +56,65 @@ export default function AlumniDirectory() {
     fetchAlumni();
   }, [currentPage, searchTerm, selectedYear]);
 
-  const goToPreviousPage = () =>
-    setCurrentPage((prev) => Math.max(1, prev - 1));
-  const goToNextPage = () =>
-    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  const goToPreviousPage = () => setCurrentPage((prev) => Math.max(1, prev - 1));
+  const goToNextPage = () => setCurrentPage((prev) => Math.min(totalPages, prev + 1));
   const goToPage = (page: number) => setCurrentPage(page);
+
+  const handleDownloadAlumni = async () => {
+    try {
+      // Fetch all alumni data without pagination for download
+      const response = await fetch("/api/get_alumni", { credentials: "include" });
+      const data = await response.json();
+
+      if (response.ok) {
+        const worksheetData = data.map((alumni: Alumni) => ({
+          Name: alumni.name,
+          "Engineering Type": alumni.engineeringType,
+          "Passout Year": alumni.passoutYear,
+          Role: alumni.role,
+          "Company Name": alumni.companyName,
+          "Company Location": alumni.companyLocation,
+          Email: alumni.email,
+          "LinkedIn": alumni.linkedin || "N/A",
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Alumni");
+        XLSX.writeFile(workbook, "Alumni_List.xlsx");
+      } else {
+        console.error("Failed to fetch all alumni:", data.message);
+      }
+    } catch (error) {
+      console.error("Error downloading alumni:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <motion.h1
-          className="text-4xl font-bold text-center text-gray-900 mb-10 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          Alumni Directory
-        </motion.h1>
+        <div className="flex justify-between items-center mb-10">
+          <motion.h1
+            className="text-4xl font-bold text-center text-gray-900 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            Alumni Directory
+          </motion.h1>
+          {userRole === "faculty" && (
+            <motion.button
+              onClick={handleDownloadAlumni}
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Download className="h-5 w-5 mr-2" />
+              Download Alumni
+            </motion.button>
+          )}
+        </div>
 
         {/* Search and Filter */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-12">
@@ -92,10 +140,7 @@ export default function AlumniDirectory() {
             transition={{ type: "spring", stiffness: 300 }}
           >
             <option value="all">All Years</option>
-            {Array.from(
-              { length: new Date().getFullYear() - 1999 },
-              (_, i) => 2000 + i
-            )
+            {Array.from({ length: new Date().getFullYear() - 1999 }, (_, i) => 2000 + i)
               .reverse()
               .map((year) => (
                 <option key={year} value={year}>
@@ -118,7 +163,7 @@ export default function AlumniDirectory() {
             {alumniData.map((alumni) => (
               <motion.div
                 key={alumni._id}
-                className="bg-white rounded-xl shadow-lg overflow-hidden transform transition-all duration-300 hover:shadow-2xl"
+                className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-purple-500 transform transition-all duration-300 hover:shadow-2xl"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 whileHover={{ scale: 1.05, y: -5 }}
@@ -192,23 +237,21 @@ export default function AlumniDirectory() {
             </motion.button>
 
             <div className="flex gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
-                  <motion.button
-                    key={page}
-                    onClick={() => goToPage(page)}
-                    className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 ${
-                      currentPage === page
-                        ? "bg-indigo-600 text-white"
-                        : "bg-white text-gray-700 hover:bg-indigo-50"
-                    }`}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    {page}
-                  </motion.button>
-                )
-              )}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <motion.button
+                  key={page}
+                  onClick={() => goToPage(page)}
+                  className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 ${
+                    currentPage === page
+                      ? "bg-indigo-600 text-white"
+                      : "bg-white text-gray-700 hover:bg-indigo-50"
+                  }`}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  {page}
+                </motion.button>
+              ))}
             </div>
 
             <motion.button
