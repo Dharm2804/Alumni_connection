@@ -6,15 +6,24 @@ const bcrypt = require('bcryptjs');
 const Event = require('../models/eventModel');
 const { sendWelcomeEmail , sendOtpEmail} = require('./emailService');
 const { sendResetEmail } = require('./sendreset_email');
+const cloudinary = require('cloudinary').v2;
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 require('dotenv').config();
 
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Signup Route with Cloudinary Image Upload
 const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
 };
 
-// In your router file
+// Signup Route with Duplicate Email Check for Alumni
 router.post('/signup', async (req, res) => {
   const { 
     name, 
@@ -26,14 +35,22 @@ router.post('/signup', async (req, res) => {
     companyName, 
     companyLocation, 
     linkedin, 
-    profileImage 
+    profileImage // Base64 string from frontend
   } = req.body;
 
   try {
-    // Check if user already exists
+    // Check if user already exists in User collection
     let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // Check if email is already used in Alumni collection (for alumni role)
+    if (role === 'alumni') {
+      const existingAlumni = await Alumni.findOne({ email });
+      if (existingAlumni) {
+        return res.status(400).json({ message: 'An alumni profile with this email already exists' });
+      }
     }
 
     // Hash password
@@ -41,6 +58,16 @@ router.post('/signup', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
     const otp = generateOtp();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Upload profile image to Cloudinary if provided
+    let profileImageUrl = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'; // Default image
+    if (profileImage) {
+      const uploadResponse = await cloudinary.uploader.upload(profileImage, {
+        folder: 'alumni_profiles',
+        transformation: [{ width: 200, height: 200, crop: 'fill' }],
+      });
+      profileImageUrl = uploadResponse.secure_url;
+    }
 
     // Create new user
     user = new User({
@@ -57,11 +84,9 @@ router.post('/signup', async (req, res) => {
     // If role is alumni, create alumni profile
     if (role === 'alumni') {
       if (!engineeringType || !passoutYear || !companyName || !companyLocation) {
-        // Roll back user creation if alumni data is incomplete
+        // Rollback: Delete the user if alumni data is incomplete
         await User.findByIdAndDelete(user._id);
-        return res.status(400).json({ 
-          message: 'All alumni fields are required' 
-        });
+        return res.status(400).json({ message: 'All alumni fields are required' });
       }
 
       const alumni = new Alumni({
@@ -72,8 +97,8 @@ router.post('/signup', async (req, res) => {
         companyName,
         companyLocation,
         linkedin: linkedin || '',
-        profileImage: profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
-        role: 'alumni'  // Adding role field to alumni schema if needed
+        profileImage: profileImageUrl,
+        role: 'alumni',
       });
       await alumni.save();
     }
@@ -87,6 +112,17 @@ router.post('/signup', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+
+    // Rollback: Delete the user if an error occurs (e.g., duplicate key error in Alumni)
+    if (user && user._id) {
+      await User.findByIdAndDelete(user._id);
+    }
+
+    if (err.code === 11000) {
+      // Handle duplicate key error specifically
+      return res.status(400).json({ message: 'An error occurred: Email is already in use' });
+    }
+
     res.status(500).json({ message: 'Server error' });
   }
 });

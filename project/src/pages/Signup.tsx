@@ -12,7 +12,7 @@ interface FormData {
   companyName?: string;
   companyLocation?: string;
   linkedin?: string;
-  profileImage?: string;
+  profileImage?: string; // Base64 string
 }
 
 export default function Signup() {
@@ -31,7 +31,7 @@ export default function Signup() {
 
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // Added loading state
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -53,7 +53,7 @@ export default function Signup() {
       reader.onloadend = () => {
         setFormData((prev) => ({
           ...prev,
-          profileImage: reader.result as string,
+          profileImage: reader.result as string, // Base64 string
         }));
       };
       reader.readAsDataURL(file);
@@ -64,58 +64,58 @@ export default function Signup() {
     setFormData((prev) => ({ ...prev, role: e.target.value }));
   };
 
-  // Signup.tsx
-const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-
-  if (!formData.role) {
-    setError('Please select a role.');
-    return;
-  }
-
-  if (formData.role === 'alumni') {
-    if (!formData.engineeringType || !formData.passoutYear || 
-        !formData.companyName || !formData.companyLocation) {
-      setError('Please fill in all required alumni fields.');
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+  
+    if (!formData.role) {
+      setError('Please select a role.');
       return;
     }
-  }
-
-  setIsLoading(true);
-  try {
-    const response = await fetch('http://localhost:5000/api/signup', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formData),
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-      localStorage.setItem('userEmail', formData.email);
-      setSignupSuccess(true);
-      setError('');
-      setTimeout(() => {
-        setSignupSuccess(false);
+  
+    if (formData.role === 'alumni') {
+      if (!formData.engineeringType || !formData.passoutYear || 
+          !formData.companyName || !formData.companyLocation) {
+        setError('Please fill in all required alumni fields.');
+        return;
+      }
+    }
+  
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+  
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem('userEmail', formData.email);
+        setSignupSuccess(true);
+        setError('');
+        setTimeout(() => {
+          setSignupSuccess(false);
+          setIsLoading(false);
+          navigate('/verify-otp', { 
+            state: { 
+              email: formData.email,
+              role: formData.role 
+            } 
+          });
+        }, 2000);
+      } else {
+        // Display the specific error message from the backend
+        setError(data.message || 'Signup Failed!');
         setIsLoading(false);
-        navigate('/verify-otp', { 
-          state: { 
-            email: formData.email,
-            role: formData.role 
-          } 
-        });
-      }, 2000);
-    } else {
-      setError(data.message || 'Signup Failed!');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      setError('Something went wrong! Please try again.');
       setIsLoading(false);
     }
-  } catch (error) {
-    console.error('Signup error:', error);
-    setError('Something went wrong!');
-    setIsLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 flex items-center justify-center p-4">
