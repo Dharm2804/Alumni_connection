@@ -2,6 +2,8 @@ import { useState, ChangeEvent, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
+const MAX_IMAGE_SIZE = 20 * 1024;
+
 interface FormData {
   name: string;
   email: string;
@@ -12,7 +14,7 @@ interface FormData {
   companyName?: string;
   companyLocation?: string;
   linkedin?: string;
-  profileImage?: string; // Base64 string
+  profileImage?: string;
 }
 
 export default function Signup() {
@@ -32,6 +34,8 @@ export default function Signup() {
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isImageValid, setIsImageValid] = useState(false);
+  const [showImageSizePopup, setShowImageSizePopup] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -45,16 +49,31 @@ export default function Signup() {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setError('Image size should be less than 2MB');
+      if (!file.type.startsWith('image/')) {
+        setError('Please upload a valid image file');
+        setIsImageValid(false);
         return;
       }
+      
+      if (file.size > MAX_IMAGE_SIZE) {
+        setError('Image size should be less than 20KB');
+        setIsImageValid(false);
+        return;
+      }
+      
+      // If image is less than 20KB
+      setError('');
+      setIsImageValid(true);
+      setShowImageSizePopup(true);
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData((prev) => ({
           ...prev,
-          profileImage: reader.result as string, // Base64 string
+          profileImage: reader.result as string,
         }));
+        // Hide popup after 2 seconds
+        setTimeout(() => setShowImageSizePopup(false), 2000);
       };
       reader.readAsDataURL(file);
     }
@@ -106,7 +125,6 @@ export default function Signup() {
           });
         }, 2000);
       } else {
-        // Display the specific error message from the backend
         setError(data.message || 'Signup Failed!');
         setIsLoading(false);
       }
@@ -116,6 +134,10 @@ export default function Signup() {
       setIsLoading(false);
     }
   };
+
+  // Determine if signup button should be disabled
+  const isSignupDisabled = isLoading || 
+    (formData.role === 'alumni' && !isImageValid);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 flex items-center justify-center p-4">
@@ -128,6 +150,18 @@ export default function Signup() {
           transition={{ duration: 0.5 }}
         >
           🎉 Signup Successful! 🎉
+        </motion.div>
+      )}
+
+      {showImageSizePopup && (
+        <motion.div
+          className="absolute top-4 bg-blue-500 text-white px-6 py-3 rounded-full shadow-lg text-center z-10"
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -50 }}
+          transition={{ duration: 0.5 }}
+        >
+          ✅ Image size is valid (less than 20KB)!
         </motion.div>
       )}
 
@@ -149,8 +183,6 @@ export default function Signup() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* ... (previous form fields remain unchanged) ... */}
-
           <div>
             <input
               type="text"
@@ -203,8 +235,8 @@ export default function Signup() {
 
           {formData.role === 'alumni' && (
             <div className="space-y-5">
-              {/* ... (alumni fields remain unchanged) ... */}
               <div>
+                <label htmlFor="profileImage" className="text-gray-700">Profile Image</label>
                 <input
                   type="file"
                   id="profileImage"
@@ -281,9 +313,9 @@ export default function Signup() {
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isSignupDisabled}
             className={`w-full py-3 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg flex items-center justify-center text-white
-              ${isLoading 
+              ${isSignupDisabled 
                 ? 'bg-indigo-400 cursor-not-allowed' 
                 : 'bg-indigo-600 hover:bg-indigo-700'}`}
           >

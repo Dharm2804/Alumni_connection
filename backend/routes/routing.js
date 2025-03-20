@@ -125,7 +125,7 @@ router.post('/signup', async (req, res) => {
 
     res.status(500).json({ message: 'Server error' });
   }
-});
+}); 
 
 // Verify OTP
 router.post('/verify-otp', async (req, res) => {
