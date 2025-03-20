@@ -51,6 +51,9 @@ const scrollVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
 };
 
+// Background image URL
+const BACKGROUND_IMAGE = "https://commencement.ucsc.edu/files/2025/01/05-14-24_Elia_Patty_Naranjo-Best_Grad_Photo_17-2.jpg";
+
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState("");
@@ -67,6 +70,7 @@ export default function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // ... (unchanged useEffect logic remains the same)
     const styleSheet = document.createElement("style");
     styleSheet.textContent = cursorStyles;
     document.head.appendChild(styleSheet);
@@ -211,8 +215,8 @@ export default function Home() {
 
   return (
     <motion.div initial={{ opacity: 0, x: -100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 100 }} transition={{ duration: 0.5 }} className="relative">
-      <div className="min-h-screen">
-        {/* Hero Section (no scroll animation as it's at the top) */}
+      <div className="min-h-screen bg-gray-50">
+        {/* Hero Section */}
         <div className="relative">
           <img className="w-full h-[500px] object-cover" src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1740&q=80" alt="University campus" />
           <motion.div className="absolute inset-0 bg-indigo-700 mix-blend-multiply" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }} />
@@ -269,7 +273,7 @@ export default function Home() {
           </motion.div>
         )}
 
-        {/* Mission Statement Section with Scroll Animation */}
+        {/* Mission Statement Section */}
         <motion.div
           variants={scrollVariants}
           initial="hidden"
@@ -283,7 +287,29 @@ export default function Home() {
           </p>
         </motion.div>
 
-        {/* Features Section with Scroll Animation */}
+        {/* Background Image Section with Space */}
+        <div
+          className="relative h-[600px] bg-fixed bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url(${BACKGROUND_IMAGE})`,
+            backgroundSize: 'contain',
+            backgroundPosition: 'center',
+          }}
+        >
+          <div className="absolute inset-0 bg-black bg-opacity-30" /> {/* Optional overlay for better text readability */}
+          <div className="relative flex items-center justify-center h-full">
+            <motion.h2
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-4xl font-bold text-white text-center"
+            >
+              Celebrating Our Graduates
+            </motion.h2>
+          </div>
+        </div>
+
+        {/* Features Section */}
         <motion.div
           variants={scrollVariants}
           initial="hidden"
@@ -310,7 +336,7 @@ export default function Home() {
           </div>
         </motion.div>
 
-        {/* Statistics Section with Scroll Animation */}
+        {/* Statistics Section */}
         <motion.div
           variants={scrollVariants}
           initial="hidden"
@@ -336,7 +362,7 @@ export default function Home() {
           </div>
         </motion.div>
 
-        {/* Testimonials Section with Scroll Animation */}
+        {/* Testimonials Section */}
         <motion.div
           variants={scrollVariants}
           initial="hidden"
@@ -379,7 +405,7 @@ export default function Home() {
           </div>
         </motion.div>
 
-        {/* Upcoming Events Section with Scroll Animation */}
+        {/* Upcoming Events Section */}
         <motion.div
           variants={scrollVariants}
           initial="hidden"
@@ -414,7 +440,7 @@ export default function Home() {
           </div>
         </motion.div>
 
-        {/* Call to Action Footer with Scroll Animation */}
+        {/* Call to Action Footer */}
         <motion.div
           variants={scrollVariants}
           initial="hidden"

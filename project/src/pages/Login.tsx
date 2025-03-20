@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 
+// Background image URL (you can replace this with your preferred image)
+const BACKGROUND_IMAGE = 'https://images.pexels.com/photos/267885/pexels-photo-267885.jpeg?cs=srgb&dl=pexels-pixabay-267885.jpg&fm=jpg'; // University Campus Scene
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,11 +54,17 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 flex items-center justify-center p-4 relative">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 relative bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url(${BACKGROUND_IMAGE})` }}
+    >
+      {/* Overlay to improve text readability */}
+      <div className="absolute inset-0 bg-black/40"></div>
+
       {/* Success Message */}
       {loginSuccess && (
         <motion.div
-          className="absolute top-4 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg text-center z-10"
+          className="absolute top-4 bg-green-600 text-white px-6 py-3 rounded-full shadow-lg text-center z-20"
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -50 }}
@@ -68,7 +77,7 @@ export default function Login() {
       {/* Colorful Loading Animation */}
       {isLoading && (
         <motion.div
-          className="absolute inset-0 flex items-center justify-center z-20"
+          className="absolute inset-0 flex items-center justify-center z-30"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -90,15 +99,15 @@ export default function Login() {
               />
               <defs>
                 <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#4F46E5" />  {/* Indigo */}
-                  <stop offset="25%" stopColor="#9333EA" /> {/* Purple */}
-                  <stop offset="50%" stopColor="#EC4899" /> {/* Pink */}
-                  <stop offset="75%" stopColor="#F59E0B" /> {/* Amber */}
-                  <stop offset="100%" stopColor="#10B981" /> {/* Green */}
+                  <stop offset="0%" stopColor="#4F46E5" />
+                  <stop offset="25%" stopColor="#9333EA" />
+                  <stop offset="50%" stopColor="#EC4899" />
+                  <stop offset="75%" stopColor="#F59E0B" />
+                  <stop offset="100%" stopColor="#10B981" />
                 </linearGradient>
               </defs>
             </svg>
-            <p className="mt-4 text-lg font-medium text-indigo-600 animate-pulse">
+            <p className="mt-4 text-lg font-medium text-white animate-pulse">
               Processing...
             </p>
           </div>
@@ -106,17 +115,24 @@ export default function Login() {
       )}
 
       <motion.div
-        className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-100 relative z-10"
+        className="bg-white/95 backdrop-blur-md p-8 rounded-2xl shadow-xl w-full max-w-md border border-white/20 relative z-10"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <h2 className="text-3xl font-bold text-gray-800 text-center mb-6">Welcome Back</h2>
+        <div className="flex justify-center mb-6">
+          <div className="bg-indigo-600 text-white rounded-full w-12 h-12 flex items-center justify-center text-2xl font-bold">
+            L
+          </div>
+        </div>
+        
+        <h2 className="text-3xl font-bold text-gray-900 text-center mb-6">Welcome Back</h2>
+        
         {error && (
-          <p className="text-red-500 text-center mb-4 bg-red-50 p-2 rounded-md">{error}</p>
+          <p className="text-red-600 text-center mb-4 bg-red-50/80 p-2 rounded-lg">{error}</p>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-5">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <input
               type="email"
@@ -124,7 +140,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50 transition-all"
+              className="w-full p-3 rounded-lg border border-gray-200 bg-white/80 focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all placeholder-gray-500"
             />
           </div>
           <div>
@@ -134,7 +150,7 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50 transition-all"
+              className="w-full p-3 rounded-lg border border-gray-200 bg-white/80 focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all placeholder-gray-500"
             />
           </div>
 
@@ -147,9 +163,9 @@ export default function Login() {
                   value={r}
                   checked={role === r}
                   onChange={(e) => setRole(e.target.value)}
-                  className="form-radio h-5 w-5 text-indigo-600 focus:ring-indigo-500"
+                  className="form-radio h-5 w-5 text-indigo-600 focus:ring-indigo-400"
                 />
-                <span className="text-gray-700 capitalize">{r}</span>
+                <span className="text-gray-700 capitalize font-medium">{r}</span>
               </label>
             ))}
           </div>
@@ -157,15 +173,15 @@ export default function Login() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full py-3 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg flex items-center justify-center
+            className={`w-full py-3 rounded-lg transition-all duration-200 shadow-md text-white font-medium
               ${isLoading 
                 ? 'bg-indigo-400 cursor-not-allowed' 
-                : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg'}`}
           >
             {isLoading ? (
               <>
                 <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -192,10 +208,10 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-6 text-center space-y-3">
+        <div className="mt-6 text-center space-y-4">
           <button
             onClick={() => navigate('/forgot-password')}
-            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium transition-colors"
           >
             Forgot Password?
           </button>
@@ -203,7 +219,7 @@ export default function Login() {
             Don’t have an account?{' '}
             <button
               onClick={() => navigate('/signup')}
-              className="text-indigo-600 hover:text-indigo-800 font-medium"
+              className="text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
             >
               Sign Up
             </button>
