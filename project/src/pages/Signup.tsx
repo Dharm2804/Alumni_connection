@@ -205,6 +205,7 @@ export default function Signup() {
             <div className="space-y-5">
               {/* ... (alumni fields remain unchanged) ... */}
               <div>
+                <label htmlFor="profileImage" className="text-gray-700">Profile Image</label>
                 <input
                   type="file"
                   id="profileImage"
