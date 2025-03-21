@@ -213,7 +213,7 @@ export default function Events() {
                 className="pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64"
               />
             </div>
-            {userRole === 'faculty' && isLoggedIn && !editingEvent && (
+            {(userRole === 'alumni' || userRole === 'faculty') && isLoggedIn && !editingEvent && (
               <motion.button
                 onClick={() => setShowAddForm(!showAddForm)}
                 className="flex items-center px-4 py-2 text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300"
