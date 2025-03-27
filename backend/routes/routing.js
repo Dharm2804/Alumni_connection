@@ -650,11 +650,40 @@ router.get('/chat/history/:roomId', async (req, res) => {
     const { roomId } = req.params;
     const messages = await ChatMessage.find({ roomId })
       .populate('senderId', 'name email')
-      .sort({ timestamp: 1 });
+      .sort({ timestamp: -1 });
     res.status(200).json(messages);
   } catch (error) {
     console.error('Error fetching chat history:', error);
     res.status(500).json({ message: 'Failed to fetch chat history', error });
+  }
+});
+
+// Add this to your backend routes
+router.get('/chat/unread-count/:roomId', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { email } = req.headers;
+    
+    if (!email) {
+      return res.status(401).json({ message: 'Email not provided' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Count messages in this room that are not read and not sent by current user
+    const count = await ChatMessage.countDocuments({
+      roomId,
+      'senderId': { $ne: user._id },
+      isRead: false
+    });
+
+    res.status(200).json({ count });
+  } catch (error) {
+    console.error('Error fetching unread count:', error);
+    res.status(500).json({ message: 'Failed to fetch unread count', error });
   }
 });
 

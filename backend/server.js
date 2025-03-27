@@ -1,4 +1,3 @@
-// server.js (updated)
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -18,8 +17,8 @@ const io = new Server(server, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  pingTimeout: 60000, // Increase timeout to 60 seconds
-  pingInterval: 25000, // Send ping every 25 seconds
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 
 // Middleware
@@ -51,13 +50,11 @@ app.use('/api', router);
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
-  // Join a room (e.g., chat between two users)
   socket.on('joinRoom', ({ roomId }) => {
     socket.join(roomId);
     console.log(`User ${socket.id} joined room ${roomId}`);
   });
 
-  // Handle sending messages
   socket.on('sendMessage', async ({ roomId, senderId, message }) => {
     try {
       const chatMessage = new ChatMessage({
@@ -65,12 +62,38 @@ io.on('connection', (socket) => {
         senderId,
         message,
         timestamp: new Date(),
+        isRead: false,
       });
       await chatMessage.save();
 
-      io.to(roomId).emit('receiveMessage', chatMessage);
+      const populatedMessage = await ChatMessage.findById(chatMessage._id).populate('senderId', 'name email');
+      io.to(roomId).emit('receiveMessage', populatedMessage);
+      console.log(`Message sent to room ${roomId}:`, populatedMessage);
     } catch (error) {
       console.error('Error saving message:', error);
+    }
+  });
+
+  socket.on('markMessagesAsRead', async ({ roomId, messageIds }) => {
+    try {
+      if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) {
+        console.log('No valid messageIds provided for marking as read');
+        return;
+      }
+
+      const result = await ChatMessage.updateMany(
+        { _id: { $in: messageIds }, roomId, isRead: false },
+        { $set: { isRead: true } }
+      );
+      console.log(`Updated ${result.modifiedCount} messages as read in room ${roomId}`);
+
+      if (result.modifiedCount > 0) {
+        messageIds.forEach((messageId) => {
+          io.to(roomId).emit('messageRead', { messageId });
+        });
+      }
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
     }
   });
 
