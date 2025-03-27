@@ -661,7 +661,7 @@ router.get('/chat/history/:roomId', async (req, res) => {
 // Get list of users for chat (alumni and faculty)
 router.get('/chat/users', async (req, res) => {
   try {
-    const users = await User.find({ role: { $in: ['alumni', 'faculty'] } })
+    const users = await User.find({ role: { $in: ['alumni', 'faculty' , 'student'] } })
       .select('name email role _id');
     res.status(200).json(users);
   } catch (error) {
