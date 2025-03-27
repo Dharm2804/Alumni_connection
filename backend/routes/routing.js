@@ -8,6 +8,7 @@ const { sendWelcomeEmail , sendOtpEmail} = require('./emailService');
 const { sendResetEmail } = require('./sendreset_email');
 const cloudinary = require('cloudinary').v2;
 const jwt = require('jsonwebtoken');
+const ChatMessage = require('../models/ChatMessage');
 const router = express.Router();
 require('dotenv').config();
 
@@ -500,6 +501,26 @@ router.get('/get_alumni_paginated', async (req, res) => {
   }
 });
 
+// New endpoint to get current user details (for all roles)
+router.get('/current-user', async (req, res) => {
+  try {
+    const { email } = req.headers; // Expect email to be sent in headers
+    if (!email) {
+      return res.status(401).json({ message: 'Email not provided' });
+    }
+
+    const user = await User.findOne({ email }).select('name email role _id');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get alumni profile based on logged-in user (using email from request)
 router.get('/profile', async (req, res) => {
   try {
@@ -623,4 +644,68 @@ router.get('/view_alumni_profile/:id', async (req, res) => {
   }
 });
 
+// Get chat history for a room
+router.get('/chat/history/:roomId', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const messages = await ChatMessage.find({ roomId })
+      .populate('senderId', 'name email')
+      .sort({ timestamp: 1 });
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error('Error fetching chat history:', error);
+    res.status(500).json({ message: 'Failed to fetch chat history', error });
+  }
+});
+
+// Get list of users for chat (alumni and faculty)
+router.get('/chat/users', async (req, res) => {
+  try {
+    const users = await User.find({ role: { $in: ['alumni', 'faculty'] } })
+      .select('name email role _id');
+    res.status(200).json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Failed to fetch users', error });
+  }
+});
+
+router.delete('/chat/delete-all', async (req, res) => {
+  try {
+    const email = req.headers.email;
+    if (!email) {
+      return res.status(401).json({ message: 'Email not provided in headers' });
+    }
+
+    // Find the user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Find all roomIds where this user is a participant
+    const userId = user._id.toString();
+    const messages = await ChatMessage.find({
+      $or: [
+        { 'senderId': userId },
+        { 'roomId': { $regex: userId } }
+      ]
+    }).distinct('roomId');
+
+    // Delete all messages from these rooms
+    if (messages.length > 0) {
+      await ChatMessage.deleteMany({
+        roomId: { $in: messages }
+      });
+    }
+
+    res.status(200).json({ 
+      message: 'All chat history deleted successfully',
+      deletedRooms: messages.length
+    });
+  } catch (error) {
+    console.error('Error deleting all chat history:', error);
+    res.status(500).json({ message: 'Failed to delete chat history', error: error.message });
+  }
+});
 module.exports = router;

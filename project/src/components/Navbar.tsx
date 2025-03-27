@@ -10,6 +10,7 @@ export default function Navbar() {
     { path: '/alumni', label: 'Alumni Directory' },
     { path: '/jobs', label: 'Job Portal' },
     { path: '/events', label: 'Events' },
+    { path: '/chat', label: 'Chat' }, // Always included
     { path: '/donate', label: 'Donate' },
   ];
 

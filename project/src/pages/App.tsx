@@ -13,6 +13,7 @@ import ResetPassword from './ResetPassword';
 import VerifyOtp from './VerifyOtp';
 import ProtectedRoute from '../components/ProtectedRoute';
 import ViewAlumniProfile from './ViewAlumniProfile';
+import Chat from './Chat';
 
 function App() {
   return (
@@ -50,6 +51,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Events />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chat"
+              element={
+                <ProtectedRoute>
+                  <Chat />
                 </ProtectedRoute>
               }
             />
