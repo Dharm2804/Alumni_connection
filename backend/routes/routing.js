@@ -31,9 +31,7 @@ router.post('/signup', async (req, res) => {
     password, 
     role, 
     engineeringType, 
-    passoutYear, 
-    companyName, 
-    companyLocation, 
+    passoutYear,
     linkedin, 
     profileImage // Base64 string from frontend
   } = req.body;
@@ -83,10 +81,10 @@ router.post('/signup', async (req, res) => {
 
     // If role is alumni, create alumni profile
     if (role === 'alumni') {
-      if (!engineeringType || !passoutYear || !companyName || !companyLocation) {
+      if (!engineeringType || !passoutYear) {
         // Rollback: Delete the user if alumni data is incomplete
         await User.findByIdAndDelete(user._id);
-        return res.status(400).json({ message: 'All alumni fields are required' });
+        return res.status(400).json({ message: 'Engineering Type and Passout Year are required' });
       }
 
       const alumni = new Alumni({
@@ -94,8 +92,6 @@ router.post('/signup', async (req, res) => {
         email,
         engineeringType,
         passoutYear,
-        companyName,
-        companyLocation,
         linkedin: linkedin || '',
         profileImage: profileImageUrl,
         role: 'alumni',
@@ -182,7 +178,14 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    res.json({ message: 'Login successful', user: { email: user.email, role: user.role } });
+    res.json({ 
+      message: 'Login successful', 
+      user: { 
+        email: user.email, 
+        role: user.role,
+        id: user._id 
+      } 
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -286,7 +289,7 @@ router.get('/get_events', async (req, res) => {
     try {
       const { title, date, location, description, type, image, createdBy='faculty' } = req.body;
       console.log(req.body);
-      
+
       const newEvent = new Event({ title, date, location, description, type, image, createdBy });
       await newEvent.save();
       res.status(201).json(newEvent);
@@ -428,23 +431,62 @@ router.get('/get_alumni_paginated', async (req, res) => {
     const limit = parseInt(req.query.limit) || 6;
     const search = req.query.search || '';
     const year = req.query.year || 'all';
+    const {
+      name,
+      passoutYear,
+      engineeringType,
+      companyName,
+      location,
+      role
+    } = req.query;
 
     const query = {};
+    
+    // Search functionality
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
         { engineeringType: { $regex: search, $options: 'i' } }
       ];
     }
+
+    // Year filter
     if (year !== 'all') {
       query.passoutYear = parseInt(year);
+    }
+
+    // Name filter
+    if (name) {
+      query.name = { $regex: name, $options: 'i' };
+    }
+
+    // Passout year filter
+    if (passoutYear && passoutYear !== 'all') {
+      query.passoutYear = parseInt(passoutYear);
+    }
+
+    // Engineering type filter
+    if (engineeringType && engineeringType !== 'all') {
+      query.engineeringType = engineeringType;
+    }
+
+    // Employment history filters
+    if (companyName || location || role) {
+      query['employmentHistory'] = {
+        $elemMatch: {
+          ...(companyName && { companyName: { $regex: companyName, $options: 'i' } }),
+          ...(location && { companyLocation: { $regex: location, $options: 'i' } }),
+          ...(role && { role: { $regex: role, $options: 'i' } })
+        }
+      };
     }
 
     const total = await Alumni.countDocuments(query);
     const alumni = await Alumni.find(query)
       .skip((page - 1) * limit)
       .limit(limit)
-      .select('-__v');
+      .select('-__v')
+      .sort({ 'employmentHistory.durationFrom': -1 }); // Sort by latest employment date
 
     res.status(200).json({
       alumni,
@@ -501,10 +543,8 @@ router.put('/update_profile', async (req, res) => {
       profileImage,
       engineeringType,
       passoutYear,
-      companyName,
-      role,
-      companyLocation,
       linkedin,
+      employmentHistory,
     } = req.body;
 
     const updatedProfile = await Alumni.findOneAndUpdate(
@@ -514,10 +554,8 @@ router.put('/update_profile', async (req, res) => {
         profileImage,
         engineeringType,
         passoutYear,
-        companyName,
-        role,
-        companyLocation,
         linkedin,
+        employmentHistory,
       },
       { new: true, runValidators: true }
     );
@@ -552,6 +590,36 @@ router.get('/get_stats', async (req, res) => {
   } catch (error) {
     console.error('Error fetching stats:', error);
     res.status(500).json({ message: 'Failed to fetch statistics', error });
+  }
+});
+
+// Get alumni profile by ID for viewing
+router.get('/view_alumni_profile/:id', async (req, res) => {
+  try {
+    const alumniId = req.params.id;
+    
+    // Find alumni by ID and exclude sensitive information
+    const alumni = await Alumni.findById(alumniId)
+      .select('-__v -password') // Exclude version key and password
+      .lean(); // Convert to plain JavaScript object
+
+    if (!alumni) {
+      return res.status(404).json({ message: 'Alumni not found' });
+    }
+
+    // Format dates in employment history
+    if (alumni.employmentHistory) {
+      alumni.employmentHistory = alumni.employmentHistory.map(emp => ({
+        ...emp,
+        durationFrom: emp.durationFrom ? new Date(emp.durationFrom).toISOString().split('T')[0] : '',
+        durationTo: emp.durationTo ? new Date(emp.durationTo).toISOString().split('T')[0] : null,
+      }));
+    }
+
+    res.status(200).json(alumni);
+  } catch (error) {
+    console.error('Error fetching alumni profile:', error);
+    res.status(500).json({ message: 'Failed to fetch alumni profile', error: error.message });
   }
 });
 

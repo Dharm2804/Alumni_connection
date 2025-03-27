@@ -12,6 +12,7 @@ import ForgotPassword from './ForgotPassword';
 import ResetPassword from './ResetPassword';
 import VerifyOtp from './VerifyOtp';
 import ProtectedRoute from '../components/ProtectedRoute';
+import ViewAlumniProfile from './ViewAlumniProfile';
 
 function App() {
   return (
@@ -65,6 +66,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/:id"
+              element={
+                <ProtectedRoute>
+                  <ViewAlumniProfile />
                 </ProtectedRoute>
               }
             />

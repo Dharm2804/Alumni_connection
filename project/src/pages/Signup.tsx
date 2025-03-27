@@ -12,8 +12,6 @@ interface FormData {
   role: string;
   engineeringType?: string;
   passoutYear?: number;
-  companyName?: string;
-  companyLocation?: string;
   linkedin?: string;
   profileImage?: string;
 }
@@ -26,8 +24,6 @@ export default function Signup() {
     role: '',
     engineeringType: '',
     passoutYear: undefined,
-    companyName: '',
-    companyLocation: '',
     linkedin: '',
     profileImage: '',
   });
@@ -92,9 +88,8 @@ export default function Signup() {
     }
   
     if (formData.role === 'alumni') {
-      if (!formData.engineeringType || !formData.passoutYear || 
-          !formData.companyName || !formData.companyLocation) {
-        setError('Please fill in all required alumni fields.');
+      if (!formData.engineeringType || !formData.passoutYear) {
+        setError('Please fill in Engineering Type and Passout Year.');
         return;
       }
     }
@@ -316,28 +311,6 @@ export default function Signup() {
                         placeholder="Passout Year"
                         id="passoutYear"
                         value={formData.passoutYear || ''}
-                        onChange={handleChange}
-                        required
-                        className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50 transition-all"
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Company Name"
-                        id="companyName"
-                        value={formData.companyName || ''}
-                        onChange={handleChange}
-                        required
-                        className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50 transition-all"
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Company Location"
-                        id="companyLocation"
-                        value={formData.companyLocation || ''}
                         onChange={handleChange}
                         required
                         className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50 transition-all"

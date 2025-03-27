@@ -12,9 +12,7 @@ router.post('/signup', async (req, res) => {
     password, 
     role, 
     engineeringType, 
-    passoutYear, 
-    companyName, 
-    companyLocation, 
+    passoutYear,
     linkedin 
   } = req.body;
 
@@ -40,9 +38,7 @@ router.post('/signup', async (req, res) => {
         email,
         engineeringType,
         passoutYear,
-        companyName,
-        role, // This is the role in the company (from signup form)
-        companyLocation,
+        role,
         linkedin,
       });
       await alumni.save();

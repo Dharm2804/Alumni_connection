@@ -384,7 +384,8 @@ export default function Events() {
               <div className="p-6">
                 <div className="flex justify-between items-start">
                   <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{event.title}</h3>
-                  {userRole === 'faculty' && isLoggedIn && (
+                  {/* Allow both alumni and faculty to edit/delete their own events */}
+                  {(userRole === 'faculty' || (userRole === 'alumni' && event.createdBy === userRole)) && isLoggedIn && (
                     <div className="flex gap-2">
                       <motion.button
                         onClick={() => startEditing(event)}
