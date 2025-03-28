@@ -39,7 +39,7 @@ const Chat: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<UnreadCount>({});
-  const [unreadMessages, setUnreadMessages] = useState<UnreadMessages>({});
+  const [, setUnreadMessages] = useState<UnreadMessages>({});
   const [lastMessageTimes, setLastMessageTimes] = useState<LastMessageTimes>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'alumni' | 'student' | 'faculty'>('all');

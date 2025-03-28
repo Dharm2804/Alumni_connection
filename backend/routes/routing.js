@@ -9,6 +9,7 @@ const { sendResetEmail } = require('./sendreset_email');
 const cloudinary = require('cloudinary').v2;
 const jwt = require('jsonwebtoken');
 const ChatMessage = require('../models/ChatMessage');
+const Invitation = require('../models/Invitation');
 const router = express.Router();
 require('dotenv').config();
 
@@ -735,6 +736,163 @@ router.delete('/chat/delete-all', async (req, res) => {
   } catch (error) {
     console.error('Error deleting all chat history:', error);
     res.status(500).json({ message: 'Failed to delete chat history', error: error.message });
+  }
+});
+
+
+// Send invitation (faculty only)
+router.post('/invitations/send', async (req, res) => {
+  try {
+    const { email } = req.headers;
+    const { receiverEmail, description } = req.body;
+    
+    
+    // Validate inputs
+    if (!receiverEmail || !description) {
+      return res.status(400).json({ message: 'Receiver email and description are required' });
+    }
+    console.log(email);
+    
+    const sender = await User.findOne({ email });
+    console.log(sender.role);
+    if (!sender || sender.role !== 'faculty') {
+      return res.status(403).json({ message: 'Only faculty can send invitations' });
+    }
+
+    const receiver = await User.findOne({ email: receiverEmail, role: 'alumni' });
+    if (!receiver) {
+      return res.status(400).json({ message: 'Alumni not found with this email' });
+    }
+
+    // Check if there's already a pending invitation
+    const existingInvitation = await Invitation.findOne({
+      senderId: sender._id,
+      receiverId: receiver._id,
+      status: 'pending'
+    });
+
+    if (existingInvitation) {
+      return res.status(400).json({ message: 'You already have a pending invitation with this alumni' });
+    }
+
+    const invitation = new Invitation({
+      senderId: sender._id,
+      receiverId: receiver._id,
+      description
+    });
+
+    await invitation.save();
+    
+    res.status(201).json({ 
+      message: 'Invitation sent successfully', 
+      invitation: {
+        ...invitation.toObject(),
+        senderId: sender,
+        receiverId: receiver
+      }
+    });
+  } catch (error) {
+    console.error('Error sending invitation:', error);
+    res.status(500).json({ message: 'Failed to send invitation', error: error.message });
+  }
+});
+
+// Get invitations for current user
+router.get('/invitations', async (req, res) => {
+  try {
+    const { email } = req.headers;
+    if (!email) {
+      return res.status(401).json({ message: 'Email not provided' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const invitations = await Invitation.find({
+      $or: [
+        { senderId: user._id },
+        { receiverId: user._id }
+      ]
+    })
+      .populate('senderId', 'name email role')
+      .populate('receiverId', 'name email role')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(invitations);
+  } catch (error) {
+    console.error('Error fetching invitations:', error);
+    res.status(500).json({ message: 'Failed to fetch invitations', error: error.message });
+  }
+});
+
+// Accept/Reject invitation (alumni only)
+router.put('/invitations/:id/respond', async (req, res) => {
+  try {
+    const { email } = req.headers;
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['accepted', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || user.role !== 'alumni') {
+      return res.status(403).json({ message: 'Only alumni can respond to invitations' });
+    }
+
+    const invitation = await Invitation.findById(id)
+      .populate('senderId', 'name email')
+      .populate('receiverId', 'name email');
+
+    if (!invitation) {
+      return res.status(404).json({ message: 'Invitation not found' });
+    }
+
+    if (invitation.receiverId._id.toString() !== user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to respond to this invitation' });
+    }
+
+    if (invitation.status !== 'pending') {
+      return res.status(400).json({ message: 'Invitation already responded' });
+    }
+
+    invitation.status = status;
+    await invitation.save();
+
+    res.status(200).json({ 
+      message: `Invitation ${status} successfully`, 
+      invitation 
+    });
+  } catch (error) {
+    console.error('Error updating invitation:', error);
+    res.status(500).json({ message: 'Failed to update invitation', error: error.message });
+  }
+});
+
+// Get alumni list for faculty to send invitations
+router.get('/invitations/alumni-list', async (req, res) => {
+  try {
+    const { email } = req.headers;
+    if (!email) {
+      return res.status(401).json({ message: 'Email not provided' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || user.role !== 'faculty') {
+      return res.status(403).json({ message: 'Only faculty can access alumni list' });
+    }
+
+    const alumniList = await User.find({ role: 'alumni' })
+      .select('name email')
+      .sort({ name: 1 });
+
+    res.status(200).json(alumniList);
+  } catch (error) {
+    console.error('Error fetching alumni list:', error);
+    res.status(500).json({ message: 'Failed to fetch alumni list', error: error.message });
   }
 });
 module.exports = router;

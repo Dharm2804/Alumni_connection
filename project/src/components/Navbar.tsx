@@ -1,17 +1,23 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState } from 'react';
+import { NavLink, NavLinkProps } from 'react-router-dom';
 import { GraduationCap, Menu, X } from 'lucide-react';
 
-export default function Navbar() {
-  const [isOpen, setIsOpen] = React.useState(false);
+interface NavItem {
+  path: string;
+  label: string;
+}
 
-  const navItems = [
+const Navbar: React.FC = () => {
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+
+  const navItems: NavItem[] = [
     { path: '/', label: 'Home' },
     { path: '/alumni', label: 'Alumni Directory' },
     { path: '/jobs', label: 'Job Portal' },
     { path: '/events', label: 'Events' },
-    { path: '/chat', label: 'Chat' }, // Always included
+    { path: '/chat', label: 'Chat' },
     { path: '/donate', label: 'Donate' },
+    { path: '/invitations', label: 'Invitations' }, // Add this
   ];
 
   return (
@@ -32,7 +38,7 @@ export default function Navbar() {
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  className={({ isActive }) =>
+                  className={({ isActive }: { isActive: boolean }) =>
                     `px-3 py-2 rounded-md text-sm font-medium ${
                       isActive
                         ? 'bg-indigo-700 text-white'
@@ -66,7 +72,7 @@ export default function Navbar() {
               <NavLink
                 key={item.path}
                 to={item.path}
-                className={({ isActive }) =>
+                className={({ isActive }: { isActive: boolean }) =>
                   `block px-3 py-2 rounded-md text-base font-medium ${
                     isActive
                       ? 'bg-indigo-700 text-white'
@@ -83,4 +89,6 @@ export default function Navbar() {
       )}
     </nav>
   );
-}
+};
+
+export default Navbar;

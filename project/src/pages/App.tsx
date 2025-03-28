@@ -14,8 +14,9 @@ import VerifyOtp from './VerifyOtp';
 import ProtectedRoute from '../components/ProtectedRoute';
 import ViewAlumniProfile from './ViewAlumniProfile';
 import Chat from './Chat';
+import Invitations from './Invitations'; // Add this import
 
-function App() {
+const App: React.FC = () => {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
@@ -86,11 +87,19 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/invitations"
+              element={
+                <ProtectedRoute>
+                  <Invitations />
+                </ProtectedRoute>
+              }
+            />
           </Routes>
         </main>
       </div>
     </Router>
   );
-}
+};
 
 export default App;
