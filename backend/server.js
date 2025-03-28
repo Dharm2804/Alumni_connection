@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const ChatMessage = require('./models/ChatMessage');
 const router = require('./routes/routing');
+const { scheduleMonthlyReminders } = require('./routes/scheduler');
 require('dotenv').config();
 const http = require('http');
 const { Server } = require('socket.io');
@@ -101,6 +102,9 @@ io.on('connection', (socket) => {
     console.log(`User disconnected: ${socket.id}, Reason: ${reason}`);
   });
 });
+
+// Initialize the monthly reminder scheduler
+scheduleMonthlyReminders();
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
