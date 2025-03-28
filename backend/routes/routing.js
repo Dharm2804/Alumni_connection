@@ -4,7 +4,7 @@ const Alumni = require('../models/Alumni');
 const Job = require('../models/Job');
 const bcrypt = require('bcryptjs');
 const Event = require('../models/eventModel');
-const { sendWelcomeEmail , sendOtpEmail} = require('./emailService');
+const { sendWelcomeEmail , sendOtpEmail, sendInvitationConfirmationEmail, sendInvitationReceivedEmail, sendInvitationResponseEmail} = require('./emailService');
 const { sendResetEmail } = require('./sendreset_email');
 const cloudinary = require('cloudinary').v2;
 const jwt = require('jsonwebtoken');
@@ -741,20 +741,18 @@ router.delete('/chat/delete-all', async (req, res) => {
 
 
 // Send invitation (faculty only)
+// Send invitation (faculty only)
 router.post('/invitations/send', async (req, res) => {
   try {
     const { email } = req.headers;
     const { receiverEmail, description } = req.body;
-    
-    
+
     // Validate inputs
     if (!receiverEmail || !description) {
       return res.status(400).json({ message: 'Receiver email and description are required' });
     }
-    console.log(email);
-    
+
     const sender = await User.findOne({ email });
-    console.log(sender.role);
     if (!sender || sender.role !== 'faculty') {
       return res.status(403).json({ message: 'Only faculty can send invitations' });
     }
@@ -768,7 +766,7 @@ router.post('/invitations/send', async (req, res) => {
     const existingInvitation = await Invitation.findOne({
       senderId: sender._id,
       receiverId: receiver._id,
-      status: 'pending'
+      status: 'pending',
     });
 
     if (existingInvitation) {
@@ -778,18 +776,36 @@ router.post('/invitations/send', async (req, res) => {
     const invitation = new Invitation({
       senderId: sender._id,
       receiverId: receiver._id,
-      description
+      description,
     });
 
     await invitation.save();
-    
-    res.status(201).json({ 
-      message: 'Invitation sent successfully', 
+
+    // Send confirmation email to the sender (faculty)
+    await sendInvitationConfirmationEmail(
+      sender.email,
+      sender.name,
+      sender.email,
+      receiverEmail,
+      description
+    );
+
+    // Send notification email to the receiver (alumni)
+    await sendInvitationReceivedEmail(
+      receiver.email,
+      receiver.name,
+      sender.name,
+      sender.email,
+      description
+    );
+
+    res.status(201).json({
+      message: 'Invitation sent successfully',
       invitation: {
         ...invitation.toObject(),
         senderId: sender,
-        receiverId: receiver
-      }
+        receiverId: receiver,
+      },
     });
   } catch (error) {
     console.error('Error sending invitation:', error);
@@ -861,6 +877,16 @@ router.put('/invitations/:id/respond', async (req, res) => {
 
     invitation.status = status;
     await invitation.save();
+
+    // Send email to the sender (faculty) about the response
+    await sendInvitationResponseEmail(
+      invitation.senderId.email, // Sender's email
+      invitation.senderId.name,  // Sender's name
+      invitation.receiverId.name, // Receiver's name
+      invitation.receiverId.email, // Receiver's email
+      invitation.description,     // Invitation description
+      status                     // Accepted or rejected
+    );
 
     res.status(200).json({ 
       message: `Invitation ${status} successfully`, 
